@@ -1,0 +1,23 @@
+services:
+  api:
+    build:
+      context: ../apps/api
+    container_name: ufi-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - DEMO_OFFLINE=${DEMO_OFFLINE:-0}
+    volumes:
+      - ../data:/app/data:ro
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../apps/web
+    container_name: ufi-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped

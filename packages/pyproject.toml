@@ -1,0 +1,29 @@
+[project]
+name = "ufi-packages"
+version = "0.1.0"
+description = "UFI Barcelona — paquetes de datos y ML"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "geopandas>=1.0",
+    "shapely>=2.0",
+    "pyarrow>=18.0",
+    "duckdb>=1.1",
+    "requests>=2.32",
+    "httpx>=0.27",
+    "lightgbm>=4.5",
+    "scikit-learn>=1.5",
+    "joblib>=1.4",
+    "python-holidays>=0.59",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "ruff>=0.7", "ipykernel>=6.29"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["data", "ml"]
