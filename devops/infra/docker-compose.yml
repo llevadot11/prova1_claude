@@ -1,7 +1,7 @@
 services:
   api:
     build:
-      context: ../apps/api
+      context: ../../backend
     container_name: ufi-api
     ports:
       - "8000:8000"
@@ -9,12 +9,14 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - DEMO_OFFLINE=${DEMO_OFFLINE:-0}
     volumes:
-      - ../data:/app/data:ro
+      # config.py resuelve repo_root = parents[2] de /app/app/config.py = /
+      # Por eso los datos se montan en /data, no en /app/data
+      - ../../data:/data
     restart: unless-stopped
 
   web:
     build:
-      context: ../apps/web
+      context: ../../frontend
     container_name: ufi-web
     ports:
       - "3000:80"

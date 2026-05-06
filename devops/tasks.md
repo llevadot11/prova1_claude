@@ -7,20 +7,17 @@
 
 ## Bloque 1 — Viernes 19:00–22:00 (Setup + primer deploy)
 
-- [ ] **Verificar que docker-compose funciona**:
-  ```powershell
-  cd devops/infra
-  docker-compose up --build
-  # ¿Están los puertos :8000 y :3000 accesibles?
-  ```
-- [ ] **Crear cuenta en Railway** (si no existe): `https://railway.app`
-  - Free tier permite 5$/mes gratis, suficiente para la demo
+- [x] **Corregir docker-compose.yml**: build contexts apuntaban a `../apps/api` y `../apps/web` inexistentes → corregido a `../../backend` y `../../frontend`. Volumen de datos montado en `/data` (no `/app/data`) porque `config.py` resuelve `repo_root = /` en Docker.
+- [x] **Crear `frontend/nginx.conf`**: proxy `/api/` → `http://api:8000/` + SPA fallback
+- [x] **Actualizar `frontend/Dockerfile`**: copia nginx.conf + ARG VITE_API_BASE_URL
+- [x] **Crear `Dockerfile` en raíz**: para Railway (build context = repo root), crea `/data/*` dirs vacíos
+- [x] **Corregir `railway.json`**: `dockerfilePath` era `apps/api/Dockerfile` → `Dockerfile`
+- [x] **Corregir `devops/demo/snapshot.py`**: `parents[1]` → `parents[2]` para llegar a repo root
+- [x] **README.md en la raíz** del repo
+- [ ] **Crear cuenta en Railway**: https://railway.app (free tier)
 - [ ] **Crear proyecto en Vercel** para el frontend
-- [ ] **Definir variables de entorno en Railway**:
-  - `ANTHROPIC_API_KEY`
-  - `DEMO_OFFLINE=0`
-- [ ] **README.md en la raíz** del repo con: ¿qué hace el proyecto? ¿cómo arrancarlo?
-- [ ] **Decidir paleta y nombre** del producto con A (antes de que A construya el topbar)
+- [ ] **Definir variables en Railway**: `ANTHROPIC_API_KEY`, `DEMO_OFFLINE=0`
+- [ ] **Confirmar paleta y nombre** con Persona A antes del topbar
 
 ---
 
@@ -29,38 +26,36 @@
 - [ ] **Deploy Railway**:
   ```powershell
   cd <repo_root>
-  railway login; railway init
-  railway up
-  # Copiar la URL generada
+  .\devops\infra\deploy.ps1   # ← script interactivo que guía el proceso
+  # O manualmente:
+  railway login; railway init; railway up
   ```
 - [ ] **Deploy Vercel**:
   ```powershell
   cd frontend
-  # Añadir VITE_API_BASE_URL=<URL de Railway> en Vercel dashboard
   vercel --prod
+  # VITE_API_BASE_URL=<URL Railway> en Vercel dashboard
   ```
 - [ ] **Verificar H1 end-to-end**:
-  - URL Railway: `curl https://<railway>.up.railway.app/health`
-  - URL Vercel: abrir en móvil, verificar que mapa carga
+  ```powershell
+  python devops/demo/qa_check.py https://<railway-url>
+  ```
 - [ ] **Compartir URL pública** con el equipo
-- [ ] **QA de B**: probar todos los endpoints con curl o la UI de `/docs`
+- [ ] **QA de B**: probar `/docs` en Railway URL
 
 ---
 
-## Bloque 3 — Sábado 14:00–22:00 (Integración + script prewarm)
+## Bloque 3 — Sábado 14:00–22:00 (Integración + prewarm)
 
-- [ ] **Escribir `demo/prewarm.py`**:
-  - Itera 73 barrios × 24 horas × 4 modos = 7.008 llamadas a `/explain`
-  - Con rate limit de 10 req/s y timeout 5s
-  - Muestra barra de progreso (tqdm)
-  - Llama a la URL de Railway (no local)
-- [ ] **Smoke QA transversal** cuando A y C hayan integrado:
-  - Abrir en navegador → mapa carga con datos reales
-  - Click en barrio → aparece texto natural (no el fallback de plantilla)
+- [x] **`devops/demo/prewarm.py`**: 73 barrios × 24h × 4 modos = 7.008 req, rate limit 10 req/s, tqdm, asyncio, configurable por URL
+- [x] **`devops/demo/qa_check.py`**: QA script que bate todos los endpoints y reporta status
+- [x] **`devops/requirements.txt`**: httpx + tqdm para los scripts devops
+- [ ] **Smoke QA transversal** cuando A y C integren:
+  - Mapa carga datos reales (no stub sin geometría)
+  - Click barrio → texto natural (no fallback de plantilla)
   - Cambiar modo → ranking cambia
-- [ ] **Revisar PR/cambios de B**: ¿`schemas.py` tiene cambios? → avisar a A
-- [ ] **Revisar PR/cambios de C**: ¿el schema del Parquet cambió? → avisar a B
-- [ ] **Actualizar `.env.example`** si alguien añadió variables
+- [ ] **Revisar cambios de B** (schemas.py) → avisar a A si rompen api.ts
+- [ ] **Revisar cambios de C** (schema Parquet) → avisar a B si rompen store.py
 
 ---
 
@@ -68,45 +63,39 @@
 
 - [ ] **Generar snapshot fallback**:
   ```powershell
-  cd <repo_root>
   python devops/demo/snapshot.py
   # Verifica que data/processed/demo_snapshot.parquet existe
   ```
-- [ ] **Lanzar prewarm**:
+- [ ] **Lanzar pre-warm**:
   ```powershell
-  python devops/demo/prewarm.py
-  # 7k llamadas con cache hit garantizado mañana
+  pip install -r devops/requirements.txt
+  python devops/demo/prewarm.py https://<railway-url>
+  # ~12 min — 7.008 llamadas → cache garantizado mañana
   ```
 - [ ] **Probar modo offline**:
   ```powershell
   $env:DEMO_OFFLINE=1; cd backend; uvicorn app.main:app --port 8000
-  # ¿La app sigue funcionando sin red?
+  python devops/demo/qa_check.py  # debe responder sin red
   ```
-- [ ] **Grabar vídeo de la app** funcionando (backup para demo):
-  - 3 minutos siguiendo el guion de `demo/guion.md`
-  - Guardar en `devops/demo/recording.mp4`
+- [ ] **Grabar vídeo** siguiendo `devops/demo/guion.md` → `devops/demo/recording.mp4`
 
 ---
 
 ## Bloque 4 — Domingo 09:00–14:00 (Ensayos + deploy final)
 
-- [ ] **Asegurarse de que el deploy de Railway tiene el Parquet real** de C:
-  - Si Railway no tiene acceso al Parquet (es un fichero local), subir a un bucket S3 gratuito (Cloudflare R2) o montar el Parquet directamente en el repo con git-lfs
-  - Alternativa más simple: Railway con volumen persistente donde C sube el `.parquet`
-- [ ] **Comprobar `/health`** en producción: todos los servicios en `"ok"`
-- [ ] **Ensayo #1 (09:30)**: guion completo de 3 min. Cronometrar. Tomar nota de problemas.
-- [ ] **Ensayo #2 (11:00)**: igual que antes, con correcciones del ensayo 1.
-- [ ] **Ensayo #3 (13:00)**: simulación completa incluyendo preguntas del jurado.
-- [ ] **Security review antes del deploy final**:
-  - Ningún `.env` en el repositorio
-  - `ANTHROPIC_API_KEY` solo en Vercel/Railway dashboard, nunca en código
+- [ ] **Verificar Parquet en Railway**: si la URL de Railway no tiene el parquet real de C, sube a S3/R2 o usa Railway persistent volumes
+- [ ] **Comprobar `/health`** en producción: todos en `"ok"`
+- [ ] **Ensayo #1 (09:30)**: 3 min, cronometrar, anotar problemas
+- [ ] **Ensayo #2 (11:00)**: con correcciones
+- [ ] **Ensayo #3 (13:00)**: simulación completa + preguntas de jurado
+- [x] **Security review**: sin `.env` en el repo, `ANTHROPIC_API_KEY` solo en dashboards
 
 ---
 
-## Criterio de "done" para la demo
+## Criterio de "done"
 
 - [ ] URL pública accesible desde móvil
 - [ ] `DEMO_OFFLINE=1` funciona sin red (snapshot listo)
 - [ ] Vídeo de 3 min grabado como plan B
-- [ ] 3 ensayos de demo completados sin errores
+- [ ] 3 ensayos completados sin errores
 - [ ] Guion dominado: hook → UFI vivo → slider → modos → tramos → cierre
