@@ -13,20 +13,21 @@ App que responde *"¿Qué zonas de Barcelona estarán peor para moverse hoy/mañ
 | LLM | Anthropic SDK con `claude-haiku-4-5-20251001`, prompt caching activo |
 | Infra | docker-compose (local) + Vercel (front) + Railway (API) |
 
-## Layout
+## Layout (una carpeta por persona)
 
 ```
-apps/web/         React + Vite (puerto 3000)
-apps/api/         FastAPI (puerto 8000)
-packages/data/    ingesta: extiende csv_import.py, descarga GeoJSON, limpia hospitales
-packages/ml/      entrenamiento + scoring → data/processed/ufi_latest.parquet
-notebooks/        exploración y validación
-data/raw/         CSVs originales (ya hay 4)
-data/processed/   Parquets cocinados, ufi_latest.parquet
-data/cache/       SQLite cache APIs externas
-infra/            docker-compose, deploy
-demo/             snapshots fallback, guion
+frontend/      ← PERSONA A  · React + Vite + MapLibre + deck.gl + Tailwind
+backend/       ← PERSONA B  · FastAPI + Pydantic + DuckDB + Claude Haiku
+data-ml/       ← PERSONA C  · pandas + geopandas + LightGBM → ufi_latest.parquet
+devops/        ← PERSONA D  · Docker + Railway + Vercel + demo
+data/
+  raw/         CSVs originales (read-only para todos)
+  processed/   Parquets, GeoJSONs (escribe C, leen B y D)
+  cache/       SQLite cache APIs externas (escribe B)
 ```
+
+Cada carpeta tiene su propio `CLAUDE.md`, `tasks.md` y `skills.md`.
+Abre Claude Code desde la carpeta de tu persona: `claude` desde `frontend/`, `backend/`, etc.
 
 ## Datos ya en repo (data/raw/ o raíz, según ingesta)
 
@@ -36,7 +37,7 @@ demo/             snapshots fallback, guion
 - `trafico_mayo_2026.csv` — TRAMS OD-BCN (~46 MB), `idTram, data, estatActual, estatPrevist`. Cada ~5 min.
 - `csv_import.py` — script de descarga ya escrito, hay que extenderlo.
 
-Pendientes de subir antes del kickoff: dataset Kaggle accidentes, GeoJSON 73 barrios, GeoJSON tramos viarios.
+Pendientes de subir antes del kickoff: dataset Kaggle accidentes, GeoJSON 73 barrios, GeoJSON tramos viarios. Se puede buscar info extra depende del rol
 
 ## Contrato de endpoints (cerrado vie 19:00)
 
@@ -58,35 +59,36 @@ GET /health                           → status APIs upstream
 - Todo path absoluto en código; nunca `os.chdir()`.
 - DuckDB se abre en modo solo-lectura desde el API.
 - Anthropic SDK SIEMPRE con `cache_control` sobre el system prompt fijo.
-- Modelos guardados en `packages/ml/models/*.joblib` (en `.gitignore`).
+- Modelos guardados en `data-ml/ml/models/*.joblib` (en `.gitignore`).
 
 ## Comandos clave
 
 ```powershell
-# Backend
-cd apps/api; uvicorn app.main:app --reload --port 8000
+# Backend (Persona B)
+cd backend; uvicorn app.main:app --reload --port 8000
 
-# Frontend
-cd apps/web; npm run dev
+# Frontend (Persona A)
+cd frontend; npm run dev
 
-# Ingesta + scoring (manual)
-python -m packages.data.ingest
-python -m packages.ml.score
+# Ingesta + scoring (Persona C)
+cd data-ml; python -m data.ingest; python -m ml.score
 
-# Tests
-cd apps/api; pytest
-cd apps/web; npm test
+# Tests (Persona B)
+cd backend; pytest
 
-# Demo offline (lee snapshot)
-$env:DEMO_OFFLINE=1; uvicorn app.main:app --port 8000
+# Docker local (Persona D)
+cd devops/infra; docker-compose up --build
+
+# Demo offline (Persona D)
+$env:DEMO_OFFLINE=1; cd backend; uvicorn app.main:app --port 8000
 ```
 
 ## Roles
 
-- **A — Frontend** (`apps/web/`): mapa, slider, panel, modos, animaciones.
-- **B — Backend** (`apps/api/`): API, cache, DuckDB, wrapper Claude.
-- **C — Datos/ML** (`packages/data/`, `packages/ml/`, `notebooks/`): ingesta, modelos, fusión UFI.
-- **D — Demo Master + DevOps**: docker, Vercel/Railway, snapshot fallback, guion demo, QA cruzado.
+- **A — Frontend** (`frontend/`): mapa, slider, panel, modos, animaciones.
+- **B — Backend** (`backend/`): API, cache, DuckDB, wrapper Claude.
+- **C — Datos/ML** (`data-ml/`): ingesta, modelos, fusión UFI → Parquet.
+- **D — Demo Master + DevOps** (`devops/`): docker, Vercel/Railway, snapshot fallback, guion demo, QA cruzado.
 
 ## Hitos
 

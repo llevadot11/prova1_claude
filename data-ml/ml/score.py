@@ -23,7 +23,7 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 import pandas as pd
 
-from packages.data.paths import PROCESSED, UFI_PARQUET
+from data.paths import PROCESSED, UFI_PARQUET
 
 log = logging.getLogger(__name__)
 

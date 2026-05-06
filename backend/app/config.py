@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     demo_offline: bool = False
 
-    repo_root: Path = Path(__file__).resolve().parents[3]
+    repo_root: Path = Path(__file__).resolve().parents[2]
     data_dir: Path = Path("data")
     processed_dir: Path = Path("data/processed")
     cache_dir: Path = Path("data/cache")

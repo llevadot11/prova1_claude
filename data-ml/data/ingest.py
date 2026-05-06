@@ -17,7 +17,7 @@ import logging
 
 import pandas as pd
 
-from packages.data.paths import (
+from data.paths import (
     HOSPITALES_CLEAN,
     PROCESSED,
     RAW_AIRE,
