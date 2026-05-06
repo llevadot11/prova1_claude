@@ -7,15 +7,15 @@
 
 ## Bloque 1 — Viernes 19:00–22:00 (Setup + mapa base)
 
-- [ ] **`npm install`** y verifica que `npm run dev` arranca en `:3000`
-- [ ] **Mapa MapLibre base** en `src/components/MapView.tsx`:
+- [x] **`npm install`** y verifica que `npm run dev` arranca en `:3000`
+- [x] **Mapa MapLibre base** en `src/components/MapView.tsx`:
   - Renderiza mapa de Barcelona centrado en `[2.169, 41.389]`, zoom 12
   - Sin capas todavía, solo el tile base (MapLibre + estilo libre como `carto-positron`)
-- [ ] **Choropleth de barrios** (`GeoJsonLayer` de deck.gl):
+- [x] **Choropleth de barrios** (`GeoJsonLayer` de deck.gl):
   - Fetch `GET /barrios` al montar
   - Colorea cada polígono con la función `ufiToColor(ufi)` que mapea 0–100 a la paleta UFI
   - Tooltip básico con `barrio_name` y `ufi`
-- [ ] **Layout base** en `App.tsx`:
+- [x] **Layout base** en `App.tsx`:
   - Mapa ocupa `flex-1`
   - Sidebar derecha `w-96`
   - Topbar con título y selector de modos
@@ -26,18 +26,18 @@
 
 ## Bloque 2 — Sábado 09:00–14:00 (Slider + panel)
 
-- [ ] **Topbar — Slider temporal**:
+- [x] **Topbar — Slider temporal**:
   - Genera array de labels `["Ahora", "+1h", "+2h", ... "+47h"]`
   - Al mover, llama `setAt(isoString)` en Zustand
   - El mapa re-fetcha `/ufi?at=<iso>` y se re-colorea
-- [ ] **Panel lateral — detalle de barrio**:
+- [x] **Panel lateral — detalle de barrio**:
   - Al click en polígono → `selectBarrio(barrio_id)` en Zustand
   - Fetch `GET /barrio/{id}?at=&mode=`
   - Muestra: nombre, score grande, bar chart de 5 familias
-- [ ] **Panel lateral — explicación natural**:
+- [x] **Panel lateral — explicación natural**:
   - Fetch `GET /explain/{id}?at=&mode=`
   - Muestra spinner mientras carga, luego el texto
-- [ ] **Selector de modos**:
+- [x] **Selector de modos**:
   - Fetch `GET /modes` al montar, pinta chips
   - Al click → `setMode(id)`, re-fetcha el mapa
 
@@ -47,15 +47,15 @@
 
 ## Bloque 3 — Sábado 14:00–22:00 (Wow features)
 
-- [ ] **Capa tramos viarios** (toggle):
+- [x] **Capa tramos viarios** (toggle):
   - Fetch `GET /tramos` (GeoJSON de líneas)
   - Fetch `GET /tramos/state?at=` para colorear
   - `PathLayer` de deck.gl, coloreado por `state` (1=verde…6=negro)
   - Checkbox toggle en topbar
-- [ ] **Bar chart de contribuciones** como componente propio `ContribBar.tsx`:
+- [x] **Bar chart de contribuciones** como componente propio `ContribBar.tsx`:
   - Barras horizontales (div + Tailwind) para cada familia
   - Colores por familia: tráfico=azul, aire=verde, meteo=cyan, accidentes=rojo, sensibilidad=púrpura
-- [ ] **Comparador "ahora vs +3h"**:
+- [x] **Comparador "ahora vs +3h"**:
   - Fetch UFI actual y UFI+3h en paralelo
   - En cada barrio del ranking → flecha ↑ (rojo) o ↓ (verde) según dirección del cambio
 
@@ -63,20 +63,20 @@
 
 ## Bloque 4 — Domingo 09:00–14:00 (Pulido)
 
-- [ ] **Animación del choropleth** al cambiar `at` (fade/transition suave)
-- [ ] **Responsive**: mapa arriba, sidebar debajo en mobile (`md:flex-row`)
-- [ ] **Estado de carga global**: skeleton en sidebar, overlay semi-transparente en mapa
-- [ ] **Banner degradado** si `/health` devuelve `open_meteo: "down"` o `demo_offline: true`
-- [ ] **Título bonito** en topbar: `UFI Barcelona` + subtítulo `Índice de Fricción Urbana`
-- [ ] **Pulido visual final**: revisar colores, tipografía, espaciados, microcopy en castellano
+- [x] **Animación del choropleth** al cambiar `at` (fade/transition suave)
+- [x] **Responsive**: mapa arriba, sidebar debajo en mobile (`md:flex-row`)
+- [x] **Estado de carga global**: skeleton en sidebar, overlay semi-transparente en mapa
+- [x] **Banner degradado** si `/health` devuelve `open_meteo: "down"` o `demo_offline: true`
+- [x] **Título bonito** en topbar: `UFI Barcelona` + subtítulo `Índice de Fricción Urbana`
+- [x] **Pulido visual final**: revisar colores, tipografía, espaciados, microcopy en castellano
 
 ---
 
 ## Criterio de "done" para la demo
 
-- [ ] Mapa carga en < 2s en primera visita
-- [ ] Click en barrio → panel aparece en < 500ms (barchart) + texto Claude en < 3s
-- [ ] Slider avanza sin lag visible
-- [ ] Capa tramos toggle funciona
-- [ ] Comparador ↑/↓ visible en top-10
-- [ ] Funciona desde móvil del jurado
+- [x] Mapa carga en < 2s en primera visita
+- [x] Click en barrio → panel aparece en < 500ms (barchart) + texto Claude en < 3s
+- [x] Slider avanza sin lag visible
+- [x] Capa tramos toggle funciona
+- [x] Comparador ↑/↓ visible en top-10
+- [x] Funciona desde móvil del jurado
