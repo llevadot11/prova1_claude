@@ -143,16 +143,4 @@ async def explain_stream(detail: BarrioDetail) -> AsyncIterator[str]:
 
 
 def _fallback_template(detail: BarrioDetail) -> str:
-    top3 = sorted(detail.contribuciones, key=lambda c: -c.contribution_pct)[:3]
-    families_es = {
-        "trafico": "el tráfico",
-        "accidentes": "el riesgo histórico de accidentes",
-        "aire": "la calidad del aire",
-        "meteo": "la meteo",
-        "sensibilidad": "la concentración de puntos sensibles",
-    }
-    razones = ", ".join(families_es[c.family] for c in top3)
-    return (
-        f"{detail.barrio_name} tendrá un UFI {detail.ufi:.0f} a las "
-        f"{detail.at.strftime('%H:%M')}: principalmente por {razones}."
-    )
+    return ""

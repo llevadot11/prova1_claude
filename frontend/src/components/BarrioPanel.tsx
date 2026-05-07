@@ -95,29 +95,29 @@ export default function BarrioPanel({ barrioId, at, mode }: Props) {
         <ContribBar contributions={detail.contribuciones} />
       </div>
 
-      {/* Explanation */}
-      <div className="px-4 pb-5 border-t border-surface-border pt-3">
-        <div className="flex items-center gap-1.5 mb-2">
-          <Info size={10} className="text-brand" />
-          <p className="text-[9px] uppercase tracking-widest text-content-muted">
-            Análisis
-          </p>
-        </div>
-        <div className="rounded-lg bg-surface-3 px-3 py-3">
-          {loadingExplain ? (
-            <div className="flex items-center gap-2 text-xs text-content-muted">
-              <Loader2 size={11} className="animate-spin shrink-0" />
-              <span>Generando con Claude…</span>
-            </div>
-          ) : explain ? (
-            <p className="text-[11px] text-content-secondary leading-relaxed">
-              {explain.text}
+      {/* Explanation — solo visible si hay texto o está cargando */}
+      {(loadingExplain || explain?.text) && (
+        <div className="px-4 pb-5 border-t border-surface-border pt-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Info size={10} className="text-brand" />
+            <p className="text-[9px] uppercase tracking-widest text-content-muted">
+              Análisis
             </p>
-          ) : (
-            <p className="text-[11px] text-content-muted">No disponible</p>
-          )}
+          </div>
+          <div className="rounded-lg bg-surface-3 px-3 py-3">
+            {loadingExplain ? (
+              <div className="flex items-center gap-2 text-xs text-content-muted">
+                <Loader2 size={11} className="animate-spin shrink-0" />
+                <span>Generando con Claude…</span>
+              </div>
+            ) : (
+              <p className="text-[11px] text-content-secondary leading-relaxed">
+                {explain!.text}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
