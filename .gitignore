@@ -23,11 +23,11 @@ data/processed/*.parquet
 data/processed/*.geojson
 data/cache/*.sqlite
 data/cache/*.db
-demo/snapshots/*.parquet
+devops/demo/snapshots/*.parquet
 
 # Models
-packages/ml/models/*.joblib
-packages/ml/models/*.pkl
+data-ml/ml/models/*.joblib
+data-ml/ml/models/*.pkl
 
 # Env
 .env
