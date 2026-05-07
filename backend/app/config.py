@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     open_meteo_forecast_url: str = "https://api.open-meteo.com/v1/forecast"
     open_meteo_aq_url: str = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
+    # Comma-separated origins for CORS. "*" = open (local dev default).
+    # In production set to the Vercel URL, e.g. "https://ufi-bcn.vercel.app"
+    cors_origins: str = "*"
+
     demo_offline: bool = False
 
     repo_root: Path = Path(__file__).resolve().parents[2]

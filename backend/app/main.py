@@ -1,11 +1,31 @@
+import logging
+import logging.config
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from app import explain as explain_module
 from app import health, store
+from app.config import settings
 from app.modes import MODES
+
+logging.config.dictConfig({
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "utc": {
+            "format": "%(asctime)s UTC %(levelname)s %(name)s %(message)s",
+            "datefmt": "%Y-%m-%dT%H:%M:%S",
+        }
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "utc"}
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+})
+logging.Formatter.converter = __import__("time").gmtime  # force UTC timestamps
 from app.schemas import (
     ExplainResponse,
     HealthStatus,
@@ -17,9 +37,14 @@ from app.schemas import (
 
 app = FastAPI(title="UFI Barcelona API", version="0.1.0")
 
+_origins = (
+    ["*"] if settings.cors_origins == "*"
+    else [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+)
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_origins,
     allow_methods=["GET"],
     allow_headers=["*"],
 )

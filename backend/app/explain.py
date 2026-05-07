@@ -7,11 +7,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime
 
 from app import cache
 from app.config import settings
 from app.schemas import BarrioDetail, ExplainResponse
+
+logger = logging.getLogger(__name__)
 
 EXPLAIN_TTL = 60 * 60 * 24  # 24h
 
@@ -76,19 +79,23 @@ async def _generate(detail: BarrioDetail) -> str:
         ],
         "valores": detail.raw,
     }
-    msg = await client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=200,
-        system=[
-            {
-                "type": "text",
-                "text": SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
-            }
-        ],
-        messages=[{"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)}],
-    )
-    return msg.content[0].text.strip()
+    try:
+        msg = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            system=[
+                {
+                    "type": "text",
+                    "text": SYSTEM_PROMPT,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[{"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)}],
+        )
+        return msg.content[0].text.strip()
+    except Exception as exc:
+        logger.warning("Anthropic API error, using fallback template: %s", exc)
+        return _fallback_template(detail)
 
 
 def _fallback_template(detail: BarrioDetail) -> str:

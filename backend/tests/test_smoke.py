@@ -12,6 +12,7 @@ def test_health():
     assert body["api"] == "ok"
 
 
+
 def test_modes():
     r = client.get("/modes")
     assert r.status_code == 200
