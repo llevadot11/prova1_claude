@@ -20,9 +20,31 @@ const INITIAL_VIEW_STATE = {
 const MAP_STYLE =
   "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
-// Constantes fuera del componente: referencia estable, deck.gl no detecta cambios espurios
-const DECK_STYLE = { position: "relative" as const, width: "100%", height: "100%" };
-const WRAPPER_STYLE = { position: "relative" as const, width: "100%", height: "100%" };
+// Constantes fuera del componente: referencia estable, deck.gl no detecta cambios espurios.
+// Usamos posicionamiento absoluto + inset 0 (no width/height: 100%) para evitar el feedback
+// loop de ResizeObserver que se da en Chrome con DPR fraccionario:
+//   container resize → deck.gl resize canvas → canvas reporta tamaño rounded → container observa
+//   → resize otra vez → ... → vibración visual.
+const DECK_STYLE = {
+  position: "absolute" as const,
+  top: "0",
+  left: "0",
+  right: "0",
+  bottom: "0",
+};
+const WRAPPER_STYLE = {
+  position: "absolute" as const,
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  overflow: "hidden" as const,
+};
+// DPR entero: en Chrome con Windows escalado a 125%/150%, devicePixelRatio es 1.25/1.5.
+// Eso hace que deck.gl y maplibre redondeen distinto el tamaño del canvas y oscilen.
+// Forzamos un entero (1 en pantallas normales, 2 en retina) para estabilizar.
+const STABLE_DPR =
+  typeof window !== "undefined" ? Math.max(1, Math.floor(window.devicePixelRatio || 1)) : 1;
 const BORDER_COLOR: [number, number, number, number] = [255, 255, 255, 40];
 const FALLBACK_COLOR: [number, number, number, number] = [100, 100, 100, 150];
 
@@ -131,12 +153,14 @@ export default function MapView({
         getTooltip={getTooltip}
         onClick={handleClick}
         style={DECK_STYLE}
+        useDevicePixels={STABLE_DPR}
       >
-        <Map mapStyle={MAP_STYLE} />
+        <Map mapStyle={MAP_STYLE} reuseMaps />
       </DeckGL>
 
-      {/* Leyenda flotante */}
-      <div className="absolute bottom-8 left-4 z-10 rounded-card bg-surface-2/85 backdrop-blur-glass border border-surface-border shadow-glass px-3 py-2.5 pointer-events-none">
+      {/* Leyenda flotante. Sin backdrop-blur: en Chrome, blur sobre un canvas WebGL en
+          actualización fuerza re-composición cada frame → vibración perceptible. */}
+      <div className="absolute bottom-8 left-4 z-10 rounded-card bg-surface-2 border border-surface-border shadow-glass px-3 py-2.5 pointer-events-none">
         <p className="text-[9px] uppercase tracking-widest text-content-muted mb-2 font-medium">
           Índice UFI
         </p>
