@@ -192,11 +192,12 @@ function Masthead({
   return (
     <header className="shrink-0 bg-paper-2 border-b-2 border-rule-strong z-20">
       {/* Eyebrow row — numbered editorial title-card */}
-      <div className="px-6 md:px-8 pt-3 md:pt-3.5 pb-1.5 flex items-baseline justify-between gap-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-3 truncate">
+      <div className="px-4 md:px-8 pt-2.5 md:pt-3.5 pb-1 flex items-baseline justify-between gap-3">
+        <p className="font-mono text-[10px] md:text-[11px] uppercase tracking-[0.06em] text-ink-3 truncate">
           <span className="tabular-nums text-ink-2">01</span>
           <span className="mx-2">—</span>
-          diagnóstico urbano de barcelona, en directo
+          <span className="hidden sm:inline">diagnóstico urbano de barcelona, en directo</span>
+          <span className="sm:hidden">diagnóstico bcn, en directo</span>
         </p>
         <div className="hidden md:flex items-baseline gap-5 shrink-0">
           {loading && !degraded && (
@@ -208,12 +209,12 @@ function Masthead({
         </div>
       </div>
 
-      {/* Wordmark + mode register + tramos — same row */}
-      <div className="px-6 md:px-8 pb-3 flex items-end justify-between gap-6 flex-wrap">
-        <h1 className="font-display text-[36px] md:text-[44px] leading-[0.95] text-ink whitespace-nowrap">
+      {/* Wordmark + mode register + tramos */}
+      <div className="px-4 md:px-8 pb-2 md:pb-3 flex items-end justify-between gap-4 flex-wrap">
+        <h1 className="font-display text-[28px] md:text-[44px] leading-[0.95] text-ink whitespace-nowrap">
           UFI <span className="italic">Barcelona</span>
         </h1>
-        <div className="flex items-baseline gap-6 ml-auto">
+        <div className="flex items-baseline gap-4 md:gap-6 ml-auto">
           <ModeRegister modes={modes} active={mode} onChange={onModeChange} />
           <button
             type="button"
@@ -241,8 +242,8 @@ function Masthead({
         </div>
       </div>
 
-      {/* Time scrubber */}
-      <div className="px-6 md:px-8 py-2.5 border-t border-rule">
+      {/* Time scrubber — hidden on mobile portrait, lives in sheet header instead */}
+      <div className="px-4 md:px-8 py-2 md:py-2.5 border-t border-rule">
         <TimeSlider />
       </div>
     </header>
@@ -374,24 +375,24 @@ function MobileSheet({ open, onOpen, onClose, children }: MobileSheetProps) {
   return (
     <div
       className={`lg:hidden fixed inset-x-0 bottom-0 z-30 bg-paper-2 border-t-2 border-rule-strong transition-transform duration-200 ease-out ${
-        open ? "translate-y-0" : "translate-y-[calc(100%-56px)]"
+        open ? "translate-y-0" : "translate-y-[calc(100%-48px)]"
       }`}
-      style={{ maxHeight: "82vh", height: "82vh" }}
+      style={{ maxHeight: "62vh", height: "62vh" }}
     >
       <button
         type="button"
         onClick={open ? onClose : onOpen}
-        className="w-full px-5 py-3 flex items-center justify-between border-b border-rule"
+        className="w-full px-4 py-2.5 flex items-center justify-between border-b border-rule"
         aria-expanded={open}
       >
-        <span className="text-caption uppercase text-ink-3">
-          {open ? "Cerrar" : "Top 10 / detalle"}
+        <span className="font-mono text-caption uppercase tracking-[0.06em] text-ink-2 tabular-nums">
+          {open ? "[×] cerrar" : "[01] ranking · ver"}
         </span>
         <span className="font-mono text-mono text-ink tabular-nums">
           {open ? "▾" : "▴"}
         </span>
       </button>
-      <div className="flex flex-col h-[calc(100%-49px)] overflow-hidden">
+      <div className="flex flex-col h-[calc(100%-41px)] overflow-hidden">
         {children}
       </div>
     </div>
