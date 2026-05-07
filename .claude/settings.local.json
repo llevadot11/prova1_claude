@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Skill(update-config)",
-      "Skill(update-config:*)",
-      "PowerShell($installer = \"$env:TEMP\\\\DockerDesktopInstaller.exe\"; Write-Host \"Descargando Docker Desktop \\(~600 MB\\)...\"; Invoke-WebRequest -Uri \"https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe\" -OutFile $installer -UseBasicParsing; Write-Host \"Descarga completada: $\\(\\(Get-Item $installer\\).Length / 1MB -as [int]\\) MB\")"
-    ]
-  }
-}

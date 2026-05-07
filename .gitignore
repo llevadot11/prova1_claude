@@ -48,6 +48,9 @@ data-ml/ml/models/*.pkl
 *.swp
 .DS_Store
 
+# Claude Code (local-only)
+.claude/settings.local.json
+
 # Notebooks
 .ipynb_checkpoints/
 
