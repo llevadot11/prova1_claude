@@ -18,12 +18,20 @@ dist/
 .vite/
 *.tsbuildinfo
 
-# Data
-data/processed/*.parquet
-data/processed/*.geojson
+# Data — intermedios grandes (no necesarios en Railway)
+data/processed/trafico.parquet
+data/processed/accidentes.parquet
+data/processed/meteo_73pts.parquet
+data/processed/aire_73pts.parquet
+data/processed/tramo_barrio.parquet
+data/processed/hospitales_bcn.parquet
+data/processed/pois_per_barrio.parquet
+data/processed/barrios_raw.geojson
 data/cache/*.sqlite
 data/cache/*.db
 devops/demo/snapshots/*.parquet
+# Nota: barrios.geojson, tramos.geojson, mapping_barrios.csv y ufi_latest.parquet
+# SÍ se committean — el backend de Railway los necesita en la imagen Docker.
 
 # Models
 data-ml/ml/models/*.joblib

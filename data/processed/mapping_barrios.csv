@@ -1,0 +1,74 @@
+barrio_id,codi_barri,codi_districte,nom_barri,nom_districte
+BAR-001,01,01,el Raval,Ciutat Vella
+BAR-002,02,01,el Barri Gòtic,Ciutat Vella
+BAR-003,03,01,la Barceloneta,Ciutat Vella
+BAR-004,04,01,"Sant Pere, Santa Caterina i la Ribera",Ciutat Vella
+BAR-005,05,02,el Fort Pienc,Eixample
+BAR-006,06,02,la Sagrada Família,Eixample
+BAR-007,07,02,la Dreta de l'Eixample,Eixample
+BAR-008,08,02,l'Antiga Esquerra de l'Eixample,Eixample
+BAR-009,09,02,la Nova Esquerra de l'Eixample,Eixample
+BAR-010,10,02,Sant Antoni,Eixample
+BAR-011,11,03,el Poble-sec,Sants-Montjuïc
+BAR-012,12,03,la Marina del Prat Vermell,Sants-Montjuïc
+BAR-013,13,03,la Marina de Port,Sants-Montjuïc
+BAR-014,14,03,la Font de la Guatlla,Sants-Montjuïc
+BAR-015,15,03,Hostafrancs,Sants-Montjuïc
+BAR-016,16,03,la Bordeta,Sants-Montjuïc
+BAR-017,17,03,Sants - Badal,Sants-Montjuïc
+BAR-018,18,03,Sants,Sants-Montjuïc
+BAR-019,19,04,les Corts,Les Corts
+BAR-020,20,04,la Maternitat i Sant Ramon,Les Corts
+BAR-021,21,04,Pedralbes,Les Corts
+BAR-022,22,05,"Vallvidrera, el Tibidabo i les Planes",Sarrià-Sant Gervasi
+BAR-023,23,05,Sarrià,Sarrià-Sant Gervasi
+BAR-024,24,05,les Tres Torres,Sarrià-Sant Gervasi
+BAR-025,25,05,Sant Gervasi - la Bonanova,Sarrià-Sant Gervasi
+BAR-026,26,05,Sant Gervasi - Galvany,Sarrià-Sant Gervasi
+BAR-027,27,05,el Putxet i el Farró,Sarrià-Sant Gervasi
+BAR-028,28,06,Vallcarca i els Penitents,Gràcia
+BAR-029,29,06,el Coll,Gràcia
+BAR-030,30,06,la Salut,Gràcia
+BAR-031,31,06,la Vila de Gràcia,Gràcia
+BAR-032,32,06,el Camp d'en Grassot i Gràcia Nova,Gràcia
+BAR-033,33,07,el Baix Guinardó,Horta-Guinardó
+BAR-034,34,07,Can Baró,Horta-Guinardó
+BAR-035,35,07,el Guinardó,Horta-Guinardó
+BAR-036,36,07,la Font d'en Fargues,Horta-Guinardó
+BAR-037,37,07,el Carmel,Horta-Guinardó
+BAR-038,38,07,la Teixonera,Horta-Guinardó
+BAR-039,39,07,Sant Genís dels Agudells,Horta-Guinardó
+BAR-040,40,07,Montbau,Horta-Guinardó
+BAR-041,41,07,la Vall d'Hebron,Horta-Guinardó
+BAR-042,42,07,la Clota,Horta-Guinardó
+BAR-043,43,07,Horta,Horta-Guinardó
+BAR-044,44,08,Vilapicina i la Torre Llobeta,Nou Barris
+BAR-045,45,08,Porta,Nou Barris
+BAR-046,46,08,el Turó de la Peira,Nou Barris
+BAR-047,47,08,Can Peguera,Nou Barris
+BAR-048,48,08,la Guineueta,Nou Barris
+BAR-049,49,08,Canyelles,Nou Barris
+BAR-050,50,08,les Roquetes,Nou Barris
+BAR-051,51,08,Verdun,Nou Barris
+BAR-052,52,08,la Prosperitat,Nou Barris
+BAR-053,53,08,la Trinitat Nova,Nou Barris
+BAR-054,54,08,Torre Baró,Nou Barris
+BAR-055,55,08,Ciutat Meridiana,Nou Barris
+BAR-056,56,08,Vallbona,Nou Barris
+BAR-057,57,09,la Trinitat Vella,Sant Andreu
+BAR-058,58,09,Baró de Viver,Sant Andreu
+BAR-059,59,09,el Bon Pastor,Sant Andreu
+BAR-060,60,09,Sant Andreu,Sant Andreu
+BAR-061,61,09,la Sagrera,Sant Andreu
+BAR-062,62,09,el Congrés i els Indians,Sant Andreu
+BAR-063,63,09,Navas,Sant Andreu
+BAR-064,64,10,el Camp de l'Arpa del Clot,Sant Martí
+BAR-065,65,10,el Clot,Sant Martí
+BAR-066,66,10,el Parc i la Llacuna del Poblenou,Sant Martí
+BAR-067,67,10,la Vila Olímpica del Poblenou,Sant Martí
+BAR-068,68,10,el Poblenou,Sant Martí
+BAR-069,69,10,Diagonal Mar i el Front Marítim del Poblenou,Sant Martí
+BAR-070,70,10,el Besòs i el Maresme,Sant Martí
+BAR-071,71,10,Provençals del Poblenou,Sant Martí
+BAR-072,72,10,Sant Martí de Provençals,Sant Martí
+BAR-073,73,10,la Verneda i la Pau,Sant Martí

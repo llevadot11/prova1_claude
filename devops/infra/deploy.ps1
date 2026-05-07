@@ -1,87 +1,249 @@
-# deploy.ps1 — Guía de deploy Railway (backend) + Vercel (frontend)
-# Ejecutar desde la raíz del repo.
+# =============================================================================
+# UFI Barcelona — Script de Deploy
+# =============================================================================
 #
-# Prerequisitos:
-#   npm install -g @railway/cli vercel
+# USO (ejecutar desde la RAIZ del repo):
+#   .\devops\infra\deploy.ps1                   → deploy completo (Railway + Vercel)
+#   .\devops\infra\deploy.ps1 -Local            → docker-compose local
+#   .\devops\infra\deploy.ps1 -Backend          → solo Railway (API)
+#   .\devops\infra\deploy.ps1 -Frontend         → solo Vercel (front)
+#   .\devops\infra\deploy.ps1 -Score            → regenerar Parquet UFI y committear
+#   .\devops\infra\deploy.ps1 -QA <railway_url> → solo QA sobre una URL
 #
-# Uso:
-#   .\devops\infra\deploy.ps1
+# REQUISITOS (solo deploy cloud):
+#   - railway login   (npm install -g @railway/cli)
+#   - vercel login    (npm install -g vercel)
+#   - .env en raiz con ANTHROPIC_API_KEY
+#
+# =============================================================================
+
+param(
+    [switch]$Local,
+    [switch]$Backend,
+    [switch]$Frontend,
+    [switch]$Score,
+    [string]$QA = ""
+)
 
 $ErrorActionPreference = "Stop"
-$REPO_ROOT = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$ROOT = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+Set-Location $ROOT
 
-Write-Host ""
-Write-Host "=== UFI Barcelona — Deploy Script ===" -ForegroundColor Cyan
-Write-Host ""
+# ─── helpers ─────────────────────────────────────────────────────────────────
 
-# ── 1. Verificar CLIs ────────────────────────────────────────────────────────
-function Check-CLI($name) {
-    if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-        Write-Host "❌ '$name' no encontrado. Instala con: npm install -g @railway/cli vercel" -ForegroundColor Red
-        exit 1
+function Write-Step { param($msg) Write-Host "`n► $msg" -ForegroundColor Cyan }
+function Write-OK   { param($msg) Write-Host "  ✓ $msg" -ForegroundColor Green }
+function Write-Warn { param($msg) Write-Host "  ⚠ $msg" -ForegroundColor Yellow }
+function Write-Fail { param($msg) Write-Host "  ✗ $msg" -ForegroundColor Red; exit 1 }
+
+function Require-Command {
+    param($cmd, $hint)
+    if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+        Write-Fail "$cmd no encontrado. Instala con: $hint"
     }
-    Write-Host "✅ $name disponible" -ForegroundColor Green
+    Write-OK "$cmd disponible"
 }
 
-Check-CLI "railway"
-Check-CLI "vercel"
-Write-Host ""
+function Wait-Health {
+    param($url, [int]$retries = 15, [int]$delay = 8)
+    Write-Step "Esperando health en $url/health ..."
+    for ($i = 1; $i -le $retries; $i++) {
+        try {
+            $r = Invoke-RestMethod "$url/health" -TimeoutSec 5
+            if ($r) { Write-OK "Servicio UP"; return }
+        } catch {}
+        Write-Host "  Intento $i/$retries — esperando ${delay}s..." -ForegroundColor DarkGray
+        Start-Sleep $delay
+    }
+    Write-Fail "El servicio no respondio tras $retries intentos."
+}
 
-# ── 2. Railway (backend) ─────────────────────────────────────────────────────
-Write-Host "=== BACKEND — Railway ===" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "1. Login en Railway..."
-railway login
+# ─── modo -QA ────────────────────────────────────────────────────────────────
 
-Write-Host "2. Inicializando proyecto Railway (solo primera vez)..."
-Set-Location $REPO_ROOT
-railway init
+if ($QA -ne "") {
+    Write-Step "QA rapido sobre $QA"
+    Require-Command python "instala Python 3.11"
+    python devops/demo/qa_check.py $QA
+    exit 0
+}
 
-Write-Host ""
-Write-Host "3. Variables de entorno que debes añadir en Railway dashboard:"
-Write-Host "   https://railway.app  → tu proyecto → Variables" -ForegroundColor Gray
-Write-Host ""
-Write-Host "   ANTHROPIC_API_KEY = sk-ant-..."  -ForegroundColor Magenta
-Write-Host "   DEMO_OFFLINE      = 0"           -ForegroundColor Magenta
-Write-Host ""
-Write-Host "   (Pulsa Enter cuando las hayas añadido)"
-$null = Read-Host
+# ─── modo -Score: regenerar Parquet y committear ─────────────────────────────
 
-Write-Host "4. Desplegando backend..."
-railway up
+if ($Score) {
+    Write-Step "Regenerando ufi_latest.parquet ..."
+    Require-Command python "instala Python 3.11"
+    Set-Location "$ROOT/data-ml"
+    python -m ml.score
+    if ($LASTEXITCODE -ne 0) { Write-Fail "ml.score fallo" }
+    Set-Location $ROOT
+    Write-OK "Parquet generado"
 
-$RAILWAY_URL = railway domain 2>$null
-if ($RAILWAY_URL) {
-    Write-Host ""
-    Write-Host "✅ Backend desplegado en: https://$RAILWAY_URL" -ForegroundColor Green
-    Write-Host "   Verifica: curl https://$RAILWAY_URL/health"
+    Write-Step "Committeando datos procesados al repo..."
+    git add data/processed/ufi_latest.parquet `
+            data/processed/barrios.geojson `
+            data/processed/tramos.geojson `
+            data/processed/mapping_barrios.csv
+    $ts = Get-Date -Format "yyyy-MM-dd HH:mm"
+    git commit -m "data: actualizar ufi_latest.parquet y GeoJSONs [$ts]"
+    git push origin main
+    Write-OK "Datos pusheados. Railway los incluira en el proximo deploy."
+    exit 0
+}
+
+# ─── modo -Local ─────────────────────────────────────────────────────────────
+
+if ($Local) {
+    Write-Step "Arrancando con docker-compose (local)..."
+    Require-Command docker "https://docs.docker.com/get-docker/"
+
+    if (Test-Path "$ROOT/.env") {
+        Get-Content "$ROOT/.env" | ForEach-Object {
+            if ($_ -match "^([^#=]+)=(.*)$") {
+                [System.Environment]::SetEnvironmentVariable($Matches[1].Trim(), $Matches[2].Trim())
+            }
+        }
+        Write-OK ".env cargado"
+    } else {
+        Write-Warn ".env no encontrado — ANTHROPIC_API_KEY puede faltar (explicaciones usaran fallback)"
+    }
+
+    Set-Location "$ROOT/devops/infra"
+    docker compose up --build
+    exit 0
+}
+
+# ─── deploy cloud (Railway + Vercel) ─────────────────────────────────────────
+
+$doBackend  = $Backend  -or (-not $Frontend)
+$doFrontend = $Frontend -or (-not $Backend)
+
+Write-Host "`n╔══════════════════════════════════════╗" -ForegroundColor Magenta
+Write-Host "║   UFI Barcelona — Deploy a la nube   ║" -ForegroundColor Magenta
+Write-Host "╚══════════════════════════════════════╝`n" -ForegroundColor Magenta
+
+# ── 1. Prerequisitos ──────────────────────────────────────────────────────────
+Write-Step "Comprobando prerequisitos..."
+if ($doBackend)  { Require-Command railway "npm install -g @railway/cli" }
+if ($doFrontend) { Require-Command vercel  "npm install -g vercel" }
+Require-Command git "https://git-scm.com"
+
+if (-not (Test-Path "$ROOT/.env")) {
+    Write-Warn ".env no encontrado — asegurate de tener ANTHROPIC_API_KEY en Railway dashboard"
 } else {
-    Write-Host "⚠️  No se pudo obtener la URL automáticamente. Cópiala del dashboard de Railway." -ForegroundColor Yellow
-    $RAILWAY_URL = Read-Host "Pega aquí la URL de Railway (sin https://)"
+    Write-OK ".env presente"
 }
 
-Write-Host ""
+# ── 2. Verificar datos criticos ───────────────────────────────────────────────
+Write-Step "Verificando datos procesados (se incluyen en la imagen Docker)..."
+$needed = @(
+    "data/processed/ufi_latest.parquet",
+    "data/processed/barrios.geojson",
+    "data/processed/tramos.geojson",
+    "data/processed/mapping_barrios.csv"
+)
+$missing = $needed | Where-Object { -not (Test-Path "$ROOT/$_") }
+if ($missing) {
+    Write-Warn "Faltan datos procesados:"
+    $missing | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
+    Write-Fail "Ejecuta primero: .\devops\infra\deploy.ps1 -Score"
+}
+Write-OK "Datos procesados presentes"
 
-# ── 3. Vercel (frontend) ─────────────────────────────────────────────────────
-Write-Host "=== FRONTEND — Vercel ===" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "Añade esta variable en Vercel dashboard antes de continuar:"
-Write-Host "  Vercel project → Settings → Environment Variables" -ForegroundColor Gray
-Write-Host ""
-Write-Host "  VITE_API_BASE_URL = https://$RAILWAY_URL" -ForegroundColor Magenta
-Write-Host ""
-Write-Host "(Pulsa Enter cuando la hayas añadido)"
-$null = Read-Host
+# ── 3. Verificar git status ───────────────────────────────────────────────────
+Write-Step "Verificando git status..."
+$dirty = git status --porcelain
+if ($dirty) {
+    Write-Warn "Hay cambios sin committear. Railway despliega desde el ultimo commit."
+    $ans = Read-Host "  Continuar igualmente? (s/N)"
+    if ($ans -ne "s" -and $ans -ne "S") { exit 1 }
+} else {
+    Write-OK "Working tree limpio"
+}
 
-Set-Location "$REPO_ROOT\frontend"
-Write-Host "Desplegando frontend en Vercel..."
-vercel --prod
+# ── 4. Deploy Railway (backend) ───────────────────────────────────────────────
+$railwayUrl = ""
 
+if ($doBackend) {
+    Write-Step "Desplegando backend en Railway..."
+
+    $rWho = railway whoami 2>&1
+    if ($LASTEXITCODE -ne 0) { Write-Fail "No logueado en Railway. Ejecuta: railway login" }
+    Write-OK "Railway: $rWho"
+
+    # Usa el Dockerfile raiz (contiene el backend + datos procesados)
+    railway up --detach
+    if ($LASTEXITCODE -ne 0) { Write-Fail "railway up fallo" }
+    Write-OK "Build enviado a Railway (puede tardar 2-3 min)"
+
+    Start-Sleep 10
+    $domainOut = railway domain 2>&1
+    $railwayUrl = ($domainOut | Select-String "https://[^\s]+" | ForEach-Object { $_.Matches[0].Value }) | Select-Object -First 1
+    if (-not $railwayUrl) {
+        $railwayUrl = Read-Host "  URL de Railway (ej: https://ufi-xxx.up.railway.app)"
+    }
+    Write-OK "URL Railway: $railwayUrl"
+    Wait-Health $railwayUrl
+}
+
+# ── 5. Deploy Vercel (frontend) ───────────────────────────────────────────────
+$vercelUrl = ""
+
+if ($doFrontend) {
+    Write-Step "Desplegando frontend en Vercel..."
+
+    if (-not $railwayUrl) {
+        $railwayUrl = Read-Host "  URL del backend Railway (ej: https://ufi-xxx.up.railway.app)"
+    }
+
+    $vWho = vercel whoami 2>&1
+    if ($LASTEXITCODE -ne 0) { Write-Fail "No logueado en Vercel. Ejecuta: vercel login" }
+    Write-OK "Vercel: $vWho"
+
+    Set-Location "$ROOT/frontend"
+
+    # Construye con la URL de Railway inyectada en VITE_API_BASE_URL
+    # Vercel la usa en build-time para que los fetch vayan directo al backend
+    vercel --prod --yes --env "VITE_API_BASE_URL=$railwayUrl"
+    if ($LASTEXITCODE -ne 0) { Write-Fail "vercel deploy fallo" }
+
+    $vercelOut = vercel ls --prod 2>&1
+    $vercelUrl = ($vercelOut | Select-String "https://[^\s]+" | ForEach-Object { $_.Matches[0].Value }) | Select-Object -First 1
+    if ($vercelUrl) { Write-OK "URL Vercel: $vercelUrl" }
+    Set-Location $ROOT
+}
+
+# ── 6. QA automatico ─────────────────────────────────────────────────────────
+if ($railwayUrl) {
+    Write-Step "QA automatico sobre Railway..."
+    python devops/demo/qa_check.py $railwayUrl
+}
+
+# ── 7. Pre-warm (opcional, ~12 min) ──────────────────────────────────────────
+if ($railwayUrl) {
+    Write-Host ""
+    $ans = Read-Host "► Lanzar pre-warm de cache Claude ahora? (~12 min, 7.008 req) (s/N)"
+    if ($ans -eq "s" -or $ans -eq "S") {
+        pip install -r devops/requirements.txt -q
+        python devops/demo/prewarm.py $railwayUrl
+        Write-OK "Pre-warm completado — /explain respondera en <50ms en demo"
+    } else {
+        Write-Warn "Recuerda lanzarlo el sabado 22:00:"
+        Write-Host "  python devops/demo/prewarm.py $railwayUrl" -ForegroundColor DarkGray
+    }
+}
+
+# ── 8. Resumen final ──────────────────────────────────────────────────────────
 Write-Host ""
-Write-Host "=== DEPLOY COMPLETADO ===" -ForegroundColor Cyan
+Write-Host "╔══════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║        DEPLOY COMPLETADO  ✓          ║" -ForegroundColor Green
+Write-Host "╚══════════════════════════════════════╝" -ForegroundColor Green
+if ($railwayUrl) { Write-Host "  API:    $railwayUrl" -ForegroundColor White }
+if ($vercelUrl)  { Write-Host "  Front:  $vercelUrl"  -ForegroundColor White }
 Write-Host ""
-Write-Host "Verifica end-to-end:"
-Write-Host "  1. curl https://$RAILWAY_URL/health"
-Write-Host "  2. Abre la URL de Vercel en el móvil"
-Write-Host "  3. python devops/demo/qa_check.py https://$RAILWAY_URL"
+Write-Host "  Checklist post-deploy:" -ForegroundColor DarkGray
+Write-Host "  [ ] Abre $vercelUrl en movil y verifica que el mapa carga" -ForegroundColor DarkGray
+Write-Host "  [ ] Sabado 22:00 → .\devops\infra\deploy.ps1 -Score  (actualizar Parquet)" -ForegroundColor DarkGray
+Write-Host "  [ ] Sabado 22:00 → python devops/demo/snapshot.py" -ForegroundColor DarkGray
+Write-Host "  [ ] Sabado 22:00 → python devops/demo/prewarm.py $railwayUrl" -ForegroundColor DarkGray
+Write-Host "  [ ] Domingo 14:00 → 3 ensayos de demo" -ForegroundColor DarkGray
 Write-Host ""

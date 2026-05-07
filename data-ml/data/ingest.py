@@ -4,11 +4,9 @@ Pasos:
 1. Limpia hospitales.csv (filtra por bbox BCN).
 2. Carga TRAMS y normaliza tipos.
 3. Carga meteo + aire single-point como baseline.
-4. (TODO) Descarga Open-Meteo Forecast + AQ para 73 centroides de barrio.
-5. (TODO) Descarga GeoJSON 73 barrios y tramos viarios de Open Data BCN.
-6. (TODO) Carga dataset Kaggle accidentes.
-
-Persona C: completa los TODO. Cada paso debe escribir a `data/processed/`.
+4. Carga y limpia dataset de accidentes.
+5. GeoJSONs ya generados por data.build_geojsons (correr separado).
+6. Meteo+AQ 73 puntos ya generados por data.ingest_73points (correr separado).
 """
 from __future__ import annotations
 
@@ -20,11 +18,13 @@ import pandas as pd
 from data.paths import (
     HOSPITALES_CLEAN,
     PROCESSED,
+    RAW_ACCIDENTES,
     RAW_AIRE,
     RAW_HOSPITALES,
     RAW_METEO,
     RAW_TRAFICO,
     TRAFICO_PARQUET,
+    ACCIDENTES_PARQUET,
     BCN_BBOX,
 )
 
@@ -62,7 +62,7 @@ def load_trafico() -> pd.DataFrame:
     df = df[["idTram", "timestamp", "estatActual", "estatPrevist"]]
     PROCESSED.mkdir(parents=True, exist_ok=True)
     df.to_parquet(TRAFICO_PARQUET, index=False)
-    log.info("Tráfico: %d filas, %d tramos", len(df), df["idTram"].nunique())
+    log.info("Trafico: %d filas, %d tramos", len(df), df["idTram"].nunique())
     return df
 
 
@@ -78,13 +78,41 @@ def load_aire_baseline() -> pd.DataFrame:
     return df
 
 
+def load_accidentes() -> pd.DataFrame:
+    """Carga y limpia el dataset de accidentes BCN (2010-2021)."""
+    df = pd.read_csv(RAW_ACCIDENTES, encoding="utf-8", low_memory=False)
+    # Filtrar filas con neighborhood_id válido (1-73)
+    df["neighborhood_id"] = pd.to_numeric(df["neighborhood_id"], errors="coerce")
+    df = df[df["neighborhood_id"] > 0].copy()
+    # barrio_id global
+    df["barrio_id"] = "BAR-" + df["neighborhood_id"].astype(int).astype(str).str.zfill(3)
+    # Timestamp (year, month, day, hour ya están en columnas)
+    df["hour"] = pd.to_numeric(df["hour"], errors="coerce").fillna(0).astype(int)
+    for col in ["year", "month", "day"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=["year", "month", "day"])
+    df["timestamp"] = pd.to_datetime(
+        dict(year=df["year"].astype(int), month=df["month"].astype(int),
+             day=df["day"].astype(int), hour=df["hour"])
+    )
+    out = df[["barrio_id", "timestamp", "n_deaths", "n_wounded_mild",
+              "n_wounded_severe", "n_victims", "n_vehicles"]].copy()
+    PROCESSED.mkdir(parents=True, exist_ok=True)
+    out.to_parquet(ACCIDENTES_PARQUET, index=False)
+    log.info("Accidentes: %d filas, %d barrios, rango %s-%s",
+             len(out), out["barrio_id"].nunique(),
+             out["timestamp"].dt.year.min(), out["timestamp"].dt.year.max())
+    return out
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     clean_hospitales()
     load_trafico()
     load_meteo_baseline()
     load_aire_baseline()
-    print("✅ Ingesta base completada. Pendientes: 73-points meteo/AQ, GeoJSONs, Kaggle.")
+    load_accidentes()
+    print("Ingesta base completada. Pendientes: build_geojsons, ingest_73points, ingest_pois.")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import DeckGL from "@deck.gl/react";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import type { PickingInfo } from "@deck.gl/core";
@@ -20,14 +20,19 @@ const INITIAL_VIEW_STATE = {
 const MAP_STYLE =
   "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
-// Colores de tramos adaptados a fondo oscuro
+// Constantes fuera del componente: referencia estable, deck.gl no detecta cambios espurios
+const DECK_STYLE = { position: "relative" as const, width: "100%", height: "100%" };
+const WRAPPER_STYLE = { position: "relative" as const, width: "100%", height: "100%" };
+const BORDER_COLOR: [number, number, number, number] = [255, 255, 255, 40];
+const FALLBACK_COLOR: [number, number, number, number] = [100, 100, 100, 150];
+
 const TRAM_COLORS: Record<number, [number, number, number, number]> = {
-  1: [45,  212, 191, 230],   // teal  (fluido)
-  2: [132, 204, 22,  230],   // lime
-  3: [251, 191, 36,  230],   // amber
-  4: [251, 146, 60,  230],   // orange
-  5: [248, 113, 113, 230],   // red
-  6: [50,  50,  50,  230],   // dark  (colapso)
+  1: [45,  212, 191, 230],
+  2: [132, 204, 22,  230],
+  3: [251, 191, 36,  230],
+  4: [251, 146, 60,  230],
+  5: [248, 113, 113, 230],
+  6: [50,  50,  50,  230],
 };
 
 interface Props {
@@ -43,7 +48,8 @@ export default function MapView({
   tramosGeo,
   tramoStates,
 }: Props) {
-  const { selectBarrio } = useUFI();
+  // Selector específico: MapView solo se re-renderiza si selectBarrio cambia (nunca ocurre)
+  const selectBarrio = useUFI((s) => s.selectBarrio);
 
   const layers = useMemo(
     () => [
@@ -60,7 +66,7 @@ export default function MapView({
                 const s = id ? ufiScores[id] : undefined;
                 return s ? ufiToColor(s.ufi) : [30, 36, 53, 80];
               },
-              getLineColor: [255, 255, 255, 40] as [number, number, number, number],
+              getLineColor: BORDER_COLOR,
               getLineWidth: 1,
               lineWidthMinPixels: 1,
               updateTriggers: { getFillColor: ufiScores },
@@ -85,10 +91,7 @@ export default function MapView({
                 const tram_id = f.properties?.tram_id as number | undefined;
                 const state =
                   tram_id !== undefined ? tramoStates[tram_id] : undefined;
-                return (
-                  TRAM_COLORS[state ?? 0] ??
-                  ([100, 100, 100, 150] as [number, number, number, number])
-                );
+                return TRAM_COLORS[state ?? 0] ?? FALLBACK_COLOR;
               },
               getLineWidth: 3,
               lineWidthMinPixels: 2,
@@ -97,27 +100,37 @@ export default function MapView({
           ]
         : []),
     ],
-    [barrios, ufiScores, tramosGeo, tramoStates, selectBarrio]
+    // selectBarrio es una referencia estable de Zustand, no necesita estar en deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [barrios, ufiScores, tramosGeo, tramoStates]
   );
 
-  const getTooltip = ({ object }: PickingInfo) => {
-    if (!object) return null;
-    const id = (object as Feature).properties?.barrio_id as string | undefined;
-    const s = id ? ufiScores[id] : undefined;
-    return s ? `${s.barrio_name} — UFI ${s.ufi.toFixed(0)}` : null;
-  };
+  const getTooltip = useCallback(
+    ({ object }: PickingInfo) => {
+      if (!object) return null;
+      const id = (object as Feature).properties?.barrio_id as string | undefined;
+      const s = id ? ufiScores[id] : undefined;
+      return s ? `${s.barrio_name} — UFI ${s.ufi.toFixed(0)}` : null;
+    },
+    [ufiScores]
+  );
+
+  const handleClick = useCallback(
+    (info: PickingInfo) => {
+      if (!info.object) selectBarrio(null);
+    },
+    [selectBarrio]
+  );
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    <div style={WRAPPER_STYLE}>
       <DeckGL
         initialViewState={INITIAL_VIEW_STATE}
         controller={true}
         layers={layers}
         getTooltip={getTooltip}
-        onClick={(info: PickingInfo) => {
-          if (!info.object) selectBarrio(null);
-        }}
-        style={{ position: "relative", width: "100%", height: "100%" }}
+        onClick={handleClick}
+        style={DECK_STYLE}
       >
         <Map mapStyle={MAP_STYLE} />
       </DeckGL>
