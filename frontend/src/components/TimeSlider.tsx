@@ -1,30 +1,27 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useUFI } from "../store";
 
 const QUICK_SLOTS = [
-  { label: "Ahora", hours: 0  },
-  { label: "+1h",   hours: 1  },
-  { label: "+3h",   hours: 3  },
-  { label: "+6h",   hours: 6  },
+  { label: "Ahora", hours: 0 },
+  { label: "+1h",   hours: 1 },
+  { label: "+3h",   hours: 3 },
+  { label: "+6h",   hours: 6 },
   { label: "+12h",  hours: 12 },
   { label: "+24h",  hours: 24 },
 ] as const;
 
+const MAX_HOURS = 24;
+const TICKS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
+
 export default function TimeSlider() {
-  const { setAt } = useUFI();
+  const setAt = useUFI((s) => s.setAt);
   const [index, setIndex] = useState(0);
   const sessionStart = useRef(new Date());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cuando el slider vuelve a 0 (Ahora), reancla sessionStart al momento actual
-  // para que los siguientes "+Nh" sean relativos al nuevo "ahora"
-  const handleReset = () => {
-    sessionStart.current = new Date();
-  };
-
-  const applyIndex = (i: number) => {
+  const apply = (i: number) => {
     setIndex(i);
-    if (i === 0) handleReset();
+    if (i === 0) sessionStart.current = new Date();
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       if (i === 0) {
@@ -34,62 +31,95 @@ export default function TimeSlider() {
         d.setHours(d.getHours() + i);
         setAt(d.toISOString());
       }
-    }, 150);
+    }, 120);
   };
 
-  const activeHours = QUICK_SLOTS.find((s) => s.hours === index)?.hours ?? -1;
+  const formatted = useMemo(() => {
+    const d = new Date(sessionStart.current);
+    if (index > 0) d.setHours(d.getHours() + index);
+    return d.toLocaleString("es-ES", {
+      timeZone: "Europe/Madrid",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }, [index]);
 
-  const formattedTime =
-    index > 0
-      ? (() => {
-          const d = new Date(sessionStart.current);
-          d.setHours(d.getHours() + index);
-          return d.toLocaleString("es-ES", {
-            timeZone: "Europe/Madrid",
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-        })()
-      : null;
+  const pct = (index / MAX_HOURS) * 100;
 
   return (
-    <div className="flex items-center gap-3">
-      {/* Quick chips */}
-      <div className="flex gap-1">
-        {QUICK_SLOTS.map((slot) => (
-          <button
-            key={slot.hours}
-            onClick={() => applyIndex(slot.hours)}
-            className={`text-[10px] px-2.5 py-1 rounded-chip border transition-all duration-150 font-medium ${
-              activeHours === slot.hours
-                ? "bg-brand/20 text-brand border-brand/40"
-                : "bg-transparent text-content-muted border-surface-border hover:text-content-secondary hover:border-brand/30"
-            }`}
-          >
-            {slot.label}
-          </button>
-        ))}
+    <div className="flex flex-col gap-2 w-full">
+      <div className="flex items-baseline justify-between gap-4">
+        <span className="text-caption uppercase text-ink-3">Hora prevista</span>
+        <span className="font-mono text-mono text-ink tabular-nums">
+          {formatted}
+        </span>
       </div>
 
-      {/* Fine-grained slider */}
-      <div className="flex flex-col items-center gap-0.5">
+      <div className="relative w-full">
         <input
           type="range"
           min={0}
-          max={47}
+          max={MAX_HOURS}
           step={1}
           value={index}
-          onChange={(e) => applyIndex(Number(e.target.value))}
+          onChange={(e) => apply(Number(e.target.value))}
           aria-label="Seleccionar hora de predicción"
           aria-valuetext={index === 0 ? "Ahora" : `+${index} horas`}
-          className="w-24"
+          className="axis-scrubber"
         />
-        <span className="text-[9px] text-content-muted tabular-nums h-3 leading-none">
-          {formattedTime ?? ""}
-        </span>
+        <div className="absolute inset-x-0 top-[15px] h-3 flex justify-between pointer-events-none">
+          {TICKS.map((t) => (
+            <span
+              key={t}
+              aria-hidden="true"
+              className={`w-px ${t === index ? "bg-accent-ink h-3" : "bg-rule h-2"}`}
+              style={{ marginTop: t === index ? 0 : "4px" }}
+            />
+          ))}
+        </div>
+        <div
+          aria-hidden="true"
+          className="absolute -top-[2px] h-[2px] bg-accent-ink pointer-events-none transition-[width] duration-100"
+          style={{ left: 0, width: `${pct}%` }}
+        />
+      </div>
+
+      <div className="flex justify-between font-mono text-mono text-ink-3 tabular-nums">
+        {TICKS.map((t) => (
+          <span key={t} className={t === index ? "text-ink" : ""}>
+            {t === 0 ? "ahora" : `+${t}h`}
+          </span>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-body-sm pt-1">
+        {QUICK_SLOTS.map((slot) => {
+          const active = index === slot.hours;
+          return (
+            <button
+              key={slot.hours}
+              type="button"
+              onClick={() => apply(slot.hours)}
+              aria-pressed={active}
+              className={`relative pb-px transition-colors duration-100 ${
+                active
+                  ? "text-ink font-semibold"
+                  : "text-ink-3 hover:text-ink-2"
+              }`}
+            >
+              {slot.label}
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-0 right-0 -bottom-px h-[2px] bg-accent-ink"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -16,6 +16,7 @@ export interface FamilyContribution {
 export interface BarrioUFI {
   barrio_id: string;
   barrio_name: string;
+  district_name?: string;
   ufi: number;
   contribuciones: FamilyContribution[];
 }
@@ -39,6 +40,7 @@ export interface TramosStateResponse {
 export interface BarrioDetail {
   barrio_id: string;
   barrio_name: string;
+  district_name?: string;
   at: string;
   mode: Mode;
   ufi: number;

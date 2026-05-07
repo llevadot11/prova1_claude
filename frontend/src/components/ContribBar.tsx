@@ -1,15 +1,19 @@
-import { Car, Wind, Cloud, AlertTriangle, Activity, type LucideIcon } from "lucide-react";
 import type { Family, FamilyContribution } from "../api";
 
-const FAMILY_CONFIG: Record<
-  Family,
-  { label: string; icon: LucideIcon; barColor: string; iconColor: string }
-> = {
-  trafico:      { label: "Tráfico",          icon: Car,           barColor: "bg-blue-500",   iconColor: "text-blue-400"   },
-  aire:         { label: "Calidad del aire",  icon: Wind,          barColor: "bg-teal-500",   iconColor: "text-teal-400"   },
-  meteo:        { label: "Meteorología",      icon: Cloud,         barColor: "bg-cyan-500",   iconColor: "text-cyan-400"   },
-  accidentes:   { label: "Accidentes",        icon: AlertTriangle, barColor: "bg-orange-500", iconColor: "text-orange-400" },
-  sensibilidad: { label: "Sensibilidad",      icon: Activity,      barColor: "bg-purple-500", iconColor: "text-purple-400" },
+const FAMILY_LABEL: Record<Family, string> = {
+  trafico:      "Tráfico",
+  aire:         "Calidad del aire",
+  meteo:        "Meteorología",
+  accidentes:   "Accidentes",
+  sensibilidad: "Sensibilidad",
+};
+
+const FAMILY_HEX: Record<Family, string> = {
+  trafico:      "#c4663c",
+  accidentes:   "#963823",
+  aire:         "#9bc6a7",
+  meteo:        "#d49a4f",
+  sensibilidad: "#5a6b8c",
 };
 
 interface Props {
@@ -22,28 +26,28 @@ export default function ContribBar({ contributions }: Props) {
   );
 
   return (
-    <ul className="space-y-3">
+    <ul className="flex flex-col gap-3">
       {sorted.map((c) => {
-        const cfg = FAMILY_CONFIG[c.family];
-        if (!cfg) return null;
-        const { label, icon: Icon, barColor, iconColor } = cfg;
+        const label = FAMILY_LABEL[c.family];
+        const color = FAMILY_HEX[c.family];
+        if (!label) return null;
+        const pct = Math.max(0, Math.min(100, c.contribution_pct));
         return (
-          <li key={c.family}>
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5">
-                <Icon size={11} className={iconColor} />
-                <span className="text-[11px] text-content-secondary">{label}</span>
-              </div>
-              <span className="text-[11px] font-mono font-medium text-content-primary tabular-nums">
-                {c.contribution_pct.toFixed(0)}%
-              </span>
-            </div>
-            <div className="h-1.5 bg-surface-3 rounded-chip overflow-hidden">
+          <li key={c.family} className="grid grid-cols-[1fr_auto] gap-x-3 items-baseline">
+            <span className="text-body-sm text-ink-2">{label}</span>
+            <span className="font-mono text-mono text-ink tabular-nums">
+              {pct.toFixed(0)}%
+            </span>
+            <div
+              className="col-span-2 h-[6px] bg-paper-3"
+              role="presentation"
+            >
               <div
-                className={`h-full rounded-chip transition-all duration-500 ${barColor}`}
+                className="h-full transition-[width] duration-300 ease-out-quart"
                 style={{
-                  width: `${c.contribution_pct}%`,
-                  minWidth: c.contribution_pct > 0 ? "4px" : "0",
+                  width: `${pct}%`,
+                  backgroundColor: color,
+                  minWidth: pct > 0 ? "2px" : 0,
                 }}
               />
             </div>

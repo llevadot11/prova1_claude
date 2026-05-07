@@ -1,62 +1,53 @@
+/** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        surface: {
-          base:   "#0d1117",
-          1:      "#161b27",
-          2:      "#1e2435",
-          3:      "#272e42",
-          border: "#2d3548",
+        paper: {
+          DEFAULT: "oklch(0.985 0.005 95)",
+          2:       "oklch(0.965 0.006 95)",
+          3:       "oklch(0.93  0.008 90)",
         },
-        content: {
-          primary:   "#e2e8f6",
-          secondary: "#8892aa",
-          muted:     "#4a5270",
+        rule: {
+          DEFAULT: "oklch(0.82 0.01  85)",
+          strong:  "oklch(0.62 0.012 80)",
         },
-        brand: {
-          DEFAULT: "#06b6d4",
-          hover:   "#22d3ee",
-          dim:     "#0e7490",
+        ink: {
+          DEFAULT: "oklch(0.20 0.015 80)",
+          2:       "oklch(0.38 0.012 80)",
+          3:       "oklch(0.55 0.01  80)",
+        },
+        accent: {
+          ink: "oklch(0.32 0.05 240)",
         },
         ufi: {
-          low:      "#2dd4bf",
-          mid:      "#fbbf24",
-          high:     "#fb923c",
-          critical: "#f87171",
+          0: "oklch(0.86 0.06 165)",
+          1: "oklch(0.78 0.09 150)",
+          2: "oklch(0.84 0.11 95)",
+          3: "oklch(0.76 0.14 70)",
+          4: "oklch(0.65 0.17 45)",
+          5: "oklch(0.48 0.18 30)",
         },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ['"JetBrains Mono"', "monospace"],
+        display: ['"Instrument Serif"', "Georgia", "serif"],
+        sans:    ['"Inter Tight"', "Inter", "system-ui", "sans-serif"],
+        mono:    ['"JetBrains Mono"', "ui-monospace", "monospace"],
       },
-      borderRadius: {
-        card: "12px",
-        chip: "9999px",
-        btn:  "6px",
+      fontSize: {
+        "display-2xl": ["56px", { lineHeight: "1",    letterSpacing: "-0.01em" }],
+        "display-xl":  ["40px", { lineHeight: "1.05", letterSpacing: "-0.005em" }],
+        "display-lg":  ["28px", { lineHeight: "1.15" }],
+        "body-lg":     ["17px", { lineHeight: "1.5" }],
+        "body":        ["14px", { lineHeight: "1.45" }],
+        "body-sm":     ["13px", { lineHeight: "1.4" }],
+        "caption":     ["11px", { lineHeight: "1.3", letterSpacing: "0.04em" }],
+        "mono-lg":     ["24px", { lineHeight: "1" }],
+        "mono":        ["13px", { lineHeight: "1.1" }],
       },
-      backdropBlur: {
-        glass: "16px",
-      },
-      boxShadow: {
-        glass:      "0 8px 32px 0 rgba(0,0,0,0.55)",
-        "glass-sm": "0 2px 12px 0 rgba(0,0,0,0.35)",
-        brand:      "0 0 20px -4px rgba(6,182,212,0.3)",
-      },
-      animation: {
-        "slide-in": "slideIn 0.2s ease-out",
-        "fade-in":  "fadeIn 0.15s ease-out",
-      },
-      keyframes: {
-        slideIn: {
-          from: { transform: "translateX(12px)", opacity: "0" },
-          to:   { transform: "translateX(0)",    opacity: "1" },
-        },
-        fadeIn: {
-          from: { opacity: "0" },
-          to:   { opacity: "1" },
-        },
+      transitionTimingFunction: {
+        "out-quart": "cubic-bezier(0.22, 1, 0.36, 1)",
       },
     },
   },

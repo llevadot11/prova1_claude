@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type BarrioDetail, type ExplainResponse, type Mode } from "../api";
-import { ufiTextClass } from "../utils/ufiColor";
-import { Loader2, Info } from "lucide-react";
+import { ufiHex, ufiQualifier } from "../utils/ufiColor";
 import ContribBar from "./ContribBar";
 
 interface Props {
@@ -42,82 +41,88 @@ export default function BarrioPanel({ barrioId, at, mode }: Props) {
 
   if (loadingDetail) {
     return (
-      <div className="flex items-center justify-center gap-2 py-10 text-content-muted">
-        <Loader2 size={16} className="animate-spin" />
-        <span className="text-xs">Cargando…</span>
+      <div className="px-5 py-8">
+        <p className="font-mono text-mono text-ink-3 tabular-nums">
+          Cargando barri…
+        </p>
       </div>
     );
   }
 
   if (errorDetail || !detail) {
     return (
-      <div className="flex flex-col items-center gap-2 py-10 text-center px-4">
-        <p className="text-xs text-content-muted">No se pudo cargar el detalle.</p>
+      <div className="px-5 py-8">
+        <p className="text-body-sm text-ink-3">
+          No se pudo cargar el detalle del barri.
+        </p>
       </div>
     );
   }
 
+  const at_iso = detail.at;
+  const formatted = new Date(at_iso).toLocaleString("es-ES", {
+    timeZone: "Europe/Madrid",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   return (
-    <div className="animate-fade-in">
-      {/* Score header */}
-      <div className="px-4 pt-4 pb-3">
-        <p className="text-[9px] uppercase tracking-widest text-content-muted mb-1">
-          Índice de fricción
-        </p>
-        <div className="flex items-end justify-between gap-2">
-          <h3 className="text-sm font-semibold text-content-primary leading-snug">
-            {detail.barrio_name}
-          </h3>
+    <article className="ufi-fade-up">
+      <header className="px-5 pt-5 pb-4 border-b border-rule">
+        {detail.district_name && (
+          <p className="text-caption uppercase text-ink-3 mb-1">
+            {detail.district_name}
+          </p>
+        )}
+        <h2 className="font-display text-display-xl italic text-ink leading-[1.05] mb-3">
+          {detail.barrio_name}
+        </h2>
+        <div className="flex items-baseline gap-3">
           <span
-            className={`font-mono text-5xl font-bold tabular-nums leading-none shrink-0 ${ufiTextClass(detail.ufi)}`}
+            className="font-mono text-[44px] leading-none font-medium tabular-nums"
+            style={{ color: ufiHex(detail.ufi) }}
           >
             {detail.ufi.toFixed(0)}
           </span>
+          <span className="text-body-sm text-ink-2">
+            <span className="font-medium">{ufiQualifier(detail.ufi)}</span>
+            <span className="text-ink-3"> · UFI 0–100</span>
+          </span>
         </div>
-        {/* UFI progress bar */}
-        <div className="mt-3 h-1.5 bg-surface-3 rounded-chip overflow-hidden">
-          <div
-            className="h-full rounded-chip transition-all duration-700"
-            style={{
-              width: `${detail.ufi}%`,
-              background:
-                "linear-gradient(90deg, #2dd4bf 0%, #fbbf24 40%, #fb923c 70%, #f87171 100%)",
-            }}
-          />
-        </div>
-      </div>
+      </header>
 
-      {/* Contributions */}
-      <div className="px-4 py-3 border-t border-surface-border">
-        <p className="text-[9px] uppercase tracking-widest text-content-muted mb-3">
+      <section className="px-5 py-4 border-b border-rule">
+        <h3 className="text-caption uppercase text-ink-3 mb-3">
           Contribución por factor
-        </p>
+        </h3>
         <ContribBar contributions={detail.contribuciones} />
-      </div>
+      </section>
 
-      {/* Explanation — solo visible si hay texto o está cargando */}
       {(loadingExplain || explain?.text) && (
-        <div className="px-4 pb-5 border-t border-surface-border pt-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Info size={10} className="text-brand" />
-            <p className="text-[9px] uppercase tracking-widest text-content-muted">
-              Análisis
+        <section className="px-5 py-4 border-b border-rule">
+          <h3 className="text-caption uppercase text-ink-3 mb-2">
+            Lectura de la zona
+          </h3>
+          {loadingExplain ? (
+            <p className="font-mono text-mono text-ink-3 tabular-nums">
+              Generando lectura…
             </p>
-          </div>
-          <div className="rounded-lg bg-surface-3 px-3 py-3">
-            {loadingExplain ? (
-              <div className="flex items-center gap-2 text-xs text-content-muted">
-                <Loader2 size={11} className="animate-spin shrink-0" />
-                <span>Generando con Claude…</span>
-              </div>
-            ) : (
-              <p className="text-[11px] text-content-secondary leading-relaxed">
-                {explain!.text}
-              </p>
-            )}
-          </div>
-        </div>
+          ) : (
+            <p className="font-display text-body-lg text-ink leading-[1.55]">
+              {explain!.text}
+            </p>
+          )}
+        </section>
       )}
-    </div>
+
+      <footer className="px-5 py-3 text-caption text-ink-3 leading-snug">
+        Calculado para <span className="text-ink-2">{formatted}</span>
+        <span className="mx-1.5 text-ink-3">·</span>
+        Modo <span className="text-ink-2">{detail.mode}</span>
+      </footer>
+    </article>
   );
 }
