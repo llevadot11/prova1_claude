@@ -143,4 +143,26 @@ async def explain_stream(detail: BarrioDetail) -> AsyncIterator[str]:
 
 
 def _fallback_template(detail: BarrioDetail) -> str:
-    return ""
+    """Frase determinista cuando Claude no está disponible (demo offline o sin API key)."""
+    top3 = sorted(detail.contribuciones, key=lambda c: -c.contribution_pct)[:3]
+    _labels = {
+        "trafico": "congestión de tráfico",
+        "accidentes": "riesgo histórico de accidentes",
+        "aire": "calidad del aire",
+        "meteo": "condiciones meteorológicas",
+        "sensibilidad": "densidad de puntos sensibles",
+    }
+    level = "alta" if detail.ufi >= 60 else "moderada" if detail.ufi >= 30 else "baja"
+    hour = detail.at.strftime("%H:%M")
+    if top3:
+        main = _labels.get(top3[0].family, top3[0].family)
+        second = (
+            f" y {_labels.get(top3[1].family, top3[1].family)}"
+            if len(top3) > 1 and top3[1].contribution_pct >= 15
+            else ""
+        )
+        return (
+            f"{detail.barrio_name} tendrá fricción urbana {level} a las {hour} "
+            f"principalmente por {main}{second} (UFI {detail.ufi:.0f}/100)."
+        )
+    return f"{detail.barrio_name} presenta fricción urbana {level} a las {hour} (UFI {detail.ufi:.0f}/100)."

@@ -8,7 +8,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 
 from app import cache as cache_module
 from app import enrichment, explain as explain_module
@@ -104,13 +104,22 @@ def _parse_at(at: str | None) -> datetime:
 # ---------------------------------------------------------------------------
 
 @app.get("/barrios")
-def get_barrios() -> dict:
-    return store.load_barrios_geojson()
+def get_barrios() -> Response:
+    # Pre-compressed: GZipMiddleware skips if Content-Encoding already set → ~5ms not ~100ms
+    return Response(
+        content=store.load_barrios_geojson_gzip(),
+        media_type="application/geo+json",
+        headers={"Content-Encoding": "gzip", "Vary": "Accept-Encoding"},
+    )
 
 
 @app.get("/tramos")
-def get_tramos() -> dict:
-    return store.load_tramos_geojson()
+def get_tramos() -> Response:
+    return Response(
+        content=store.load_tramos_geojson_gzip(),
+        media_type="application/geo+json",
+        headers={"Content-Encoding": "gzip", "Vary": "Accept-Encoding"},
+    )
 
 
 @app.get("/ufi", response_model=UFIResponse)

@@ -12,6 +12,7 @@ Schema del Parquet (contrato con Persona C — NO romper sin avisar):
 """
 from __future__ import annotations
 
+import gzip
 import json
 import logging
 import random
@@ -35,6 +36,11 @@ logger = logging.getLogger(__name__)
 
 # 73 barrios placeholder hasta que C suba el GeoJSON
 DUMMY_BARRIOS = [f"BAR-{i:03d}" for i in range(1, 74)]
+
+# In-memory cache for GeoJSON files (loaded once, immutable during process lifetime)
+_geojson_cache: dict[str, dict] = {}
+_geojson_raw_cache: dict[str, bytes] = {}   # raw bytes for fast serving
+_geojson_gzip_cache: dict[str, bytes] = {}  # pre-compressed bytes (bypasses GZipMiddleware)
 
 _FAMILIES = ("trafico", "accidentes", "aire", "meteo", "sensibilidad")
 
@@ -87,25 +93,68 @@ def validate_parquet_schema() -> list[str]:
 # ---------------------------------------------------------------------------
 
 def load_barrios_geojson() -> dict:
-    if settings.barrios_geojson.exists():
-        return json.loads(settings.barrios_geojson.read_text(encoding="utf-8"))
-    return {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "properties": {"barrio_id": bid, "barrio_name": f"Barrio {bid}"},
-                "geometry": None,
+    """Dict form — used internally (e.g. barrio name lookups)."""
+    key = "barrios"
+    if key not in _geojson_cache:
+        if settings.barrios_geojson.exists():
+            raw = settings.barrios_geojson.read_bytes()
+            _geojson_raw_cache[key] = raw
+            _geojson_cache[key] = json.loads(raw)
+        else:
+            stub = {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "properties": {"barrio_id": bid, "barrio_name": f"Barrio {bid}"},
+                        "geometry": None,
+                    }
+                    for bid in DUMMY_BARRIOS
+                ],
             }
-            for bid in DUMMY_BARRIOS
-        ],
-    }
+            _geojson_cache[key] = stub
+            _geojson_raw_cache[key] = json.dumps(stub).encode()
+    return _geojson_cache[key]
+
+
+def load_barrios_geojson_bytes() -> bytes:
+    """Raw bytes — served directly by the endpoint without re-serialization."""
+    if "barrios" not in _geojson_raw_cache:
+        load_barrios_geojson()  # populates both caches
+    return _geojson_raw_cache["barrios"]
+
+
+def load_barrios_geojson_gzip() -> bytes:
+    """Pre-compressed bytes. GZipMiddleware skips responses with Content-Encoding already set."""
+    if "barrios" not in _geojson_gzip_cache:
+        _geojson_gzip_cache["barrios"] = gzip.compress(load_barrios_geojson_bytes(), compresslevel=6)
+    return _geojson_gzip_cache["barrios"]
 
 
 def load_tramos_geojson() -> dict:
-    if settings.tramos_geojson.exists():
-        return json.loads(settings.tramos_geojson.read_text(encoding="utf-8"))
-    return {"type": "FeatureCollection", "features": []}
+    key = "tramos"
+    if key not in _geojson_cache:
+        if settings.tramos_geojson.exists():
+            raw = settings.tramos_geojson.read_bytes()
+            _geojson_raw_cache[key] = raw
+            _geojson_cache[key] = json.loads(raw)
+        else:
+            stub: dict = {"type": "FeatureCollection", "features": []}
+            _geojson_cache[key] = stub
+            _geojson_raw_cache[key] = json.dumps(stub).encode()
+    return _geojson_cache[key]
+
+
+def load_tramos_geojson_bytes() -> bytes:
+    if "tramos" not in _geojson_raw_cache:
+        load_tramos_geojson()
+    return _geojson_raw_cache["tramos"]
+
+
+def load_tramos_geojson_gzip() -> bytes:
+    if "tramos" not in _geojson_gzip_cache:
+        _geojson_gzip_cache["tramos"] = gzip.compress(load_tramos_geojson_bytes(), compresslevel=6)
+    return _geojson_gzip_cache["tramos"]
 
 
 # ---------------------------------------------------------------------------
@@ -243,9 +292,24 @@ def load_ufi(at: datetime, mode: Mode) -> list[BarrioUFI]:
 # ---------------------------------------------------------------------------
 
 def load_tramos_state(at: datetime) -> list[TramoState]:
-    """Stub determinista hasta que C entregue trafico procesado."""
+    """Devuelve estado predicho por tramo. Usa IDs reales del GeoJSON si existe."""
+    geojson = load_tramos_geojson()
+    features = geojson.get("features", [])
+    if features:
+        tram_ids = []
+        for f in features:
+            props = f.get("properties") or {}
+            tid = props.get("tram_id") or props.get("idTram")
+            if tid is not None:
+                try:
+                    tram_ids.append(int(tid))
+                except (ValueError, TypeError):
+                    pass
+    else:
+        tram_ids = list(range(1, 531))  # fallback stub
+
     out: list[TramoState] = []
-    for tid in range(1, 531):
+    for tid in tram_ids:
         rng = random.Random(f"tram-{tid}-{at.isoformat()}")
         out.append(TramoState(tram_id=tid, state=rng.randint(1, 6)))
     return out

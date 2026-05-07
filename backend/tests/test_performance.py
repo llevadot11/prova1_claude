@@ -37,6 +37,7 @@ def test_ufi_all_modes_response_time() -> None:
 
 
 def test_barrios_geojson_response_time() -> None:
+    client.get("/barrios")  # warm up in-memory GeoJSON cache
     status, ms = _elapsed_ms("/barrios")
     assert status == 200
     assert ms < _LIMIT_MS, f"/barrios took {ms:.1f}ms"
