@@ -20,12 +20,9 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from data.paths import PROCESSED, UFI_PARQUET
+from data.paths import PROCESSED, RAW_AIRE, RAW_METEO, UFI_PARQUET
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
 MODELS_DIR = Path(__file__).resolve().parent / "models"
-RAW_METEO = REPO_ROOT / "meteo.csv"
-RAW_AIRE = REPO_ROOT / "aire.csv"
 TRAMO_BARRIO = PROCESSED / "tramo_barrio.parquet"
 HOSPITALES = PROCESSED / "hospitales_bcn.parquet"
 AIRE_73 = PROCESSED / "aire_73pts.parquet"

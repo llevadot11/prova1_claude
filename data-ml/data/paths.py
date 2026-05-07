@@ -5,14 +5,12 @@ RAW = REPO_ROOT / "data" / "raw"
 PROCESSED = REPO_ROOT / "data" / "processed"
 CACHE = REPO_ROOT / "data" / "cache"
 
-# CSVs ya en el repo (raíz a fecha de scaffold).
-RAW_AIRE = REPO_ROOT / "aire.csv"
-RAW_METEO = REPO_ROOT / "meteo.csv"
-RAW_HOSPITALES = REPO_ROOT / "hospitales.csv"
-RAW_TRAFICO = REPO_ROOT / "trafico_mayo_2026.csv"
-RAW_ACCIDENTES = REPO_ROOT / "accidents_opendata.csv"
-
-# Descargados en data/raw/
+# CSVs originales en data/raw/.
+RAW_AIRE = RAW / "aire.csv"
+RAW_METEO = RAW / "meteo.csv"
+RAW_HOSPITALES = RAW / "hospitales.csv"
+RAW_TRAFICO = RAW / "trafico_mayo_2026.csv"
+RAW_ACCIDENTES = RAW / "accidents_opendata.csv"
 RAW_TRAMOS_CSV = RAW / "transit_relacio_trams.csv"
 
 # Outputs.

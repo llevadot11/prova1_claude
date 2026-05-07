@@ -14,15 +14,13 @@ import pandas as pd
 from lightgbm import LGBMRegressor
 from scipy.stats import spearmanr
 
-from data.paths import PROCESSED
+from data.paths import PROCESSED, RAW_METEO
 from ml.features_trafico import FEATURE_COLS, TARGET_COL, build_features
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
 MODELS_DIR = Path(__file__).resolve().parent / "models"
 MODEL_PATH = MODELS_DIR / "trafico.joblib"
 TRAMO_BARRIO_PARQUET = PROCESSED / "tramo_barrio.parquet"
 TRAFICO_PARQUET = PROCESSED / "trafico.parquet"
-RAW_METEO = REPO_ROOT / "meteo.csv"
 
 log = logging.getLogger(__name__)
 

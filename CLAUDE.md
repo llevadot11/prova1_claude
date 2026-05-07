@@ -29,15 +29,14 @@ data/
 Cada carpeta tiene su propio `CLAUDE.md`, `tasks.md` y `skills.md`.
 Abre Claude Code desde la carpeta de tu persona: `claude` desde `frontend/`, `backend/`, etc.
 
-## Datos ya en repo (data/raw/ o raíz, según ingesta)
+## Datos ya en repo (todos en `data/raw/`)
 
-- `aire.csv` — single-point Open-Meteo AQ (lat 41.3888, lon 2.159). Hay que ampliar a 73 puntos.
-- `meteo.csv` — single-point Open-Meteo Forecast. Idem.
-- `hospitales.csv` — Overpass dump SUCIO (incluye Granollers y hasta Venezuela). **Hay que filtrar por bbox BCN antes de usar.**
-- `trafico_mayo_2026.csv` — TRAMS OD-BCN (~46 MB), `idTram, data, estatActual, estatPrevist`. Cada ~5 min.
-- `csv_import.py` — script de descarga ya escrito, hay que extenderlo.
-
-Pendientes de subir antes del kickoff: dataset Kaggle accidentes, GeoJSON 73 barrios, GeoJSON tramos viarios. Se puede buscar info extra depende del rol
+- `data/raw/aire.csv` — single-point Open-Meteo AQ (lat 41.3888, lon 2.159).
+- `data/raw/meteo.csv` — single-point Open-Meteo Forecast.
+- `data/raw/hospitales.csv` — Overpass dump SUCIO. Filtrar por bbox BCN antes de usar.
+- `data/raw/trafico_mayo_2026.csv` — TRAMS OD-BCN (~46 MB), `idTram, data, estatActual, estatPrevist`.
+- `data/raw/accidents_opendata.csv` — Accidentes BCN (~24 MB).
+- `data-ml/data/csv_import.py` — script de descarga.
 
 ## Contrato de endpoints (cerrado vie 19:00)
 
