@@ -50,3 +50,8 @@ data-ml/ml/models/*.pkl
 
 # Notebooks
 .ipynb_checkpoints/
+
+# Screenshots y herramientas locales
+*.png
+.playwright-mcp/
+data-ml/temp_*.py

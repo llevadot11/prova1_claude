@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # UFI Barcelona — Script de Deploy
 # =============================================================================
 #
@@ -153,9 +153,7 @@ Write-OK "Datos procesados presentes"
 Write-Step "Verificando git status..."
 $dirty = git status --porcelain
 if ($dirty) {
-    Write-Warn "Hay cambios sin committear. Railway despliega desde el ultimo commit."
-    $ans = Read-Host "  Continuar igualmente? (s/N)"
-    if ($ans -ne "s" -and $ans -ne "S") { exit 1 }
+    Write-Warn "Hay cambios sin committear (Railway/Vercel suben archivos LOCALES, no el commit)."
 } else {
     Write-OK "Working tree limpio"
 }
@@ -220,16 +218,8 @@ if ($railwayUrl) {
 
 # ── 7. Pre-warm (opcional, ~12 min) ──────────────────────────────────────────
 if ($railwayUrl) {
-    Write-Host ""
-    $ans = Read-Host "► Lanzar pre-warm de cache Claude ahora? (~12 min, 7.008 req) (s/N)"
-    if ($ans -eq "s" -or $ans -eq "S") {
-        pip install -r devops/requirements.txt -q
-        python devops/demo/prewarm.py $railwayUrl
-        Write-OK "Pre-warm completado — /explain respondera en <50ms en demo"
-    } else {
-        Write-Warn "Recuerda lanzarlo el sabado 22:00:"
-        Write-Host "  python devops/demo/prewarm.py $railwayUrl" -ForegroundColor DarkGray
-    }
+    Write-Warn "Pre-warm de cache Claude no lanzado (ejecuta cuando quieras):"
+    Write-Host "  python devops/demo/prewarm.py $railwayUrl" -ForegroundColor DarkGray
 }
 
 # ── 8. Resumen final ──────────────────────────────────────────────────────────
