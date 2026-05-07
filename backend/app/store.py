@@ -161,13 +161,23 @@ def load_tramos_geojson_gzip() -> bytes:
 # Helpers internos
 # ---------------------------------------------------------------------------
 
-def _barrio_names_from_geojson() -> dict[str, str]:
+def _barrio_names_from_geojson() -> dict[str, tuple[str, str]]:
+    """Devuelve {barrio_id: (nombre_barrio, nombre_distrito)}.
+
+    El GeoJSON real (Open Data BCN) trae `nom_barri` y `nom_districte`.
+    El stub dummy usa `barrio_name`. Probamos ambos, fallback al barrio_id.
+    """
     geojson = load_barrios_geojson()
-    return {
-        f["properties"]["barrio_id"]: f["properties"].get("barrio_name", f["properties"]["barrio_id"])
-        for f in geojson.get("features", [])
-        if f.get("properties", {}).get("barrio_id")
-    }
+    out: dict[str, tuple[str, str]] = {}
+    for f in geojson.get("features", []):
+        props = f.get("properties") or {}
+        bid = props.get("barrio_id")
+        if not bid:
+            continue
+        name = props.get("nom_barri") or props.get("barrio_name") or bid
+        district = props.get("nom_districte") or props.get("district_name") or ""
+        out[bid] = (name, district)
+    return out
 
 
 def _apply_weights(scores: dict[str, float], weights: dict[str, float]) -> tuple[float, list[FamilyContribution]]:
@@ -194,7 +204,7 @@ def _load_ufi_from_parquet(at: datetime, mode: Mode) -> list[BarrioUFI] | None:
         return None
 
     weights = MODES[mode].weights
-    names = _barrio_names_from_geojson()
+    name_map = _barrio_names_from_geojson()
     hour_iso = at.replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
     parquet_path = str(settings.ufi_parquet)
 
@@ -242,10 +252,12 @@ def _load_ufi_from_parquet(at: datetime, mode: Mode) -> list[BarrioUFI] | None:
             "sensibilidad": float(s_se),
         }
         ufi, contribs = _apply_weights(scores, weights)
+        name, district = name_map.get(bid, (bid, ""))
         out.append(
             BarrioUFI(
                 barrio_id=bid,
-                barrio_name=names.get(bid, bid),
+                barrio_name=name,
+                district_name=district,
                 ufi=ufi,
                 contribuciones=contribs,
             )
@@ -255,16 +267,18 @@ def _load_ufi_from_parquet(at: datetime, mode: Mode) -> list[BarrioUFI] | None:
 
 def _load_ufi_stub(at: datetime, mode: Mode) -> list[BarrioUFI]:
     weights = MODES[mode].weights
-    names = _barrio_names_from_geojson()
+    name_map = _barrio_names_from_geojson()
     out: list[BarrioUFI] = []
     for bid in DUMMY_BARRIOS:
         rng = random.Random(f"{bid}-{at.isoformat()}-{mode}")
         scores = {f: rng.random() for f in _FAMILIES}
         ufi, contribs = _apply_weights(scores, weights)
+        name, district = name_map.get(bid, (f"Barrio {bid}", ""))
         out.append(
             BarrioUFI(
                 barrio_id=bid,
-                barrio_name=names.get(bid, f"Barrio {bid}"),
+                barrio_name=name,
+                district_name=district,
                 ufi=ufi,
                 contribuciones=contribs,
             )
@@ -334,6 +348,7 @@ def load_barrio_detail(barrio_id: str, at: datetime, mode: Mode) -> BarrioDetail
     return BarrioDetail(
         barrio_id=barrio.barrio_id,
         barrio_name=barrio.barrio_name,
+        district_name=barrio.district_name,
         at=at,
         mode=mode,
         ufi=barrio.ufi,

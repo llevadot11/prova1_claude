@@ -17,6 +17,7 @@ class FamilyContribution(BaseModel):
 class BarrioUFI(BaseModel):
     barrio_id: str
     barrio_name: str
+    district_name: str = ""
     ufi: float = Field(ge=0, le=100)
     contribuciones: list[FamilyContribution]
 
@@ -40,6 +41,7 @@ class TramosStateResponse(BaseModel):
 class BarrioDetail(BaseModel):
     barrio_id: str
     barrio_name: str
+    district_name: str = ""
     at: datetime
     mode: Mode
     ufi: float
