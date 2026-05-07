@@ -22,7 +22,8 @@ param(
     [switch]$Backend,
     [switch]$Frontend,
     [switch]$Score,
-    [string]$QA = ""
+    [string]$QA = "",
+    [string]$RailwayUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -159,7 +160,7 @@ if ($dirty) {
 }
 
 # ── 4. Deploy Railway (backend) ───────────────────────────────────────────────
-$railwayUrl = ""
+$railwayUrl = $RailwayUrl
 
 if ($doBackend) {
     Write-Step "Desplegando backend en Railway..."
@@ -169,7 +170,7 @@ if ($doBackend) {
     Write-OK "Railway: $rWho"
 
     # Usa el Dockerfile raiz (contiene el backend + datos procesados)
-    railway up --detach
+    railway up --detach --service Prova_claude
     if ($LASTEXITCODE -ne 0) { Write-Fail "railway up fallo" }
     Write-OK "Build enviado a Railway (puede tardar 2-3 min)"
 
@@ -190,24 +191,31 @@ if ($doFrontend) {
     Write-Step "Desplegando frontend en Vercel..."
 
     if (-not $railwayUrl) {
-        $railwayUrl = Read-Host "  URL del backend Railway (ej: https://ufi-xxx.up.railway.app)"
+        Write-Fail "URL Railway no provista. Pasa -RailwayUrl https://... o lanza con -Backend tambien."
     }
 
-    $vWho = vercel whoami 2>&1
-    if ($LASTEXITCODE -ne 0) { Write-Fail "No logueado en Vercel. Ejecuta: vercel login" }
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+
+    $vWho = vercel whoami
+    if ($LASTEXITCODE -ne 0) { $ErrorActionPreference = $prevEAP; Write-Fail "No logueado en Vercel. Ejecuta: vercel login" }
     Write-OK "Vercel: $vWho"
 
     Set-Location "$ROOT/frontend"
 
     # Construye con la URL de Railway inyectada en VITE_API_BASE_URL
     # Vercel la usa en build-time para que los fetch vayan directo al backend
-    vercel --prod --yes --env "VITE_API_BASE_URL=$railwayUrl"
-    if ($LASTEXITCODE -ne 0) { Write-Fail "vercel deploy fallo" }
+    $vercelDeployOut = vercel --prod --yes --build-env "VITE_API_BASE_URL=$railwayUrl" --env "VITE_API_BASE_URL=$railwayUrl"
+    if ($LASTEXITCODE -ne 0) { $ErrorActionPreference = $prevEAP; Set-Location $ROOT; Write-Fail "vercel deploy fallo" }
 
-    $vercelOut = vercel ls --prod 2>&1
-    $vercelUrl = ($vercelOut | Select-String "https://[^\s]+" | ForEach-Object { $_.Matches[0].Value }) | Select-Object -First 1
+    $vercelUrl = ($vercelDeployOut | Select-String "https://[^\s]+\.vercel\.app" | ForEach-Object { $_.Matches[0].Value }) | Select-Object -First 1
+    if (-not $vercelUrl) {
+        $vercelOut = vercel ls --prod
+        $vercelUrl = ($vercelOut | Select-String "https://[^\s]+\.vercel\.app" | ForEach-Object { $_.Matches[0].Value }) | Select-Object -First 1
+    }
     if ($vercelUrl) { Write-OK "URL Vercel: $vercelUrl" }
     Set-Location $ROOT
+    $ErrorActionPreference = $prevEAP
 }
 
 # ── 6. QA automatico ─────────────────────────────────────────────────────────
