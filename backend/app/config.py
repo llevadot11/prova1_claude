@@ -36,5 +36,9 @@ class Settings(BaseSettings):
     def cache_db(self) -> Path:
         return self.repo_root / self.cache_dir / "api_cache.sqlite"
 
+    @property
+    def snapshot_json(self) -> Path:
+        return self.repo_root / self.processed_dir / "snapshot.json"
+
 
 settings = Settings()

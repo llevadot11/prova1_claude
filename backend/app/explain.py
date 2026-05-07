@@ -9,6 +9,7 @@ import hashlib
 import json
 import logging
 from datetime import datetime
+from typing import AsyncIterator
 
 from app import cache
 from app.config import settings
@@ -32,8 +33,28 @@ def _signature(detail: BarrioDetail) -> str:
     families = "|".join(c.family for c in top3)
     hour = detail.at.replace(minute=0, second=0, microsecond=0).isoformat()
     raw_blob = json.dumps(detail.raw, sort_keys=True)
-    h = hashlib.sha1(f"{detail.barrio_id}|{hour}|{detail.mode}|{families}|{raw_blob}".encode()).hexdigest()
+    h = hashlib.sha1(
+        f"{detail.barrio_id}|{hour}|{detail.mode}|{families}|{raw_blob}".encode()
+    ).hexdigest()
     return h[:16]
+
+
+def _build_user_payload(detail: BarrioDetail) -> str:
+    top3 = sorted(detail.contribuciones, key=lambda c: -c.contribution_pct)[:3]
+    return json.dumps(
+        {
+            "barrio": detail.barrio_name,
+            "hora": detail.at.isoformat(),
+            "modo": detail.mode,
+            "ufi": detail.ufi,
+            "top3": [
+                {"family": c.family, "contribution_pct": round(c.contribution_pct, 1)}
+                for c in top3
+            ],
+            "valores": detail.raw,
+        },
+        ensure_ascii=False,
+    )
 
 
 async def explain(detail: BarrioDetail) -> ExplainResponse:
@@ -63,22 +84,9 @@ async def _generate(detail: BarrioDetail) -> str:
     if settings.demo_offline or not settings.anthropic_api_key:
         return _fallback_template(detail)
 
-    # Lazy import — no rompe arranque sin la lib.
     from anthropic import AsyncAnthropic
 
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
-    top3 = sorted(detail.contribuciones, key=lambda c: -c.contribution_pct)[:3]
-    user_payload = {
-        "barrio": detail.barrio_name,
-        "hora": detail.at.isoformat(),
-        "modo": detail.mode,
-        "ufi": detail.ufi,
-        "top3": [
-            {"family": c.family, "contribution_pct": round(c.contribution_pct, 1)}
-            for c in top3
-        ],
-        "valores": detail.raw,
-    }
     try:
         msg = await client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -90,12 +98,48 @@ async def _generate(detail: BarrioDetail) -> str:
                     "cache_control": {"type": "ephemeral"},
                 }
             ],
-            messages=[{"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)}],
+            messages=[{"role": "user", "content": _build_user_payload(detail)}],
         )
         return msg.content[0].text.strip()
     except Exception as exc:
         logger.warning("Anthropic API error, using fallback template: %s", exc)
         return _fallback_template(detail)
+
+
+async def explain_stream(detail: BarrioDetail) -> AsyncIterator[str]:
+    """Yields text chunks from Claude as they arrive. Falls back to full template on error.
+
+    Also writes the full accumulated text to cache on success.
+    """
+    if settings.demo_offline or not settings.anthropic_api_key:
+        yield _fallback_template(detail)
+        return
+
+    from anthropic import AsyncAnthropic
+
+    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    full_text = ""
+    try:
+        async with client.messages.stream(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            system=[
+                {
+                    "type": "text",
+                    "text": SYSTEM_PROMPT,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[{"role": "user", "content": _build_user_payload(detail)}],
+        ) as stream:
+            async for chunk in stream.text_stream:
+                full_text += chunk
+                yield chunk
+        key = f"explain:{_signature(detail)}"
+        cache.put(key, full_text.strip(), EXPLAIN_TTL)
+    except Exception as exc:
+        logger.warning("Anthropic stream error, using fallback template: %s", exc)
+        yield _fallback_template(detail)
 
 
 def _fallback_template(detail: BarrioDetail) -> str:

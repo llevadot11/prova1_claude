@@ -13,7 +13,9 @@ Schema del Parquet (contrato con Persona C — NO romper sin avisar):
 from __future__ import annotations
 
 import json
+import logging
 import random
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,10 +31,22 @@ from app.schemas import (
     TramoState,
 )
 
+logger = logging.getLogger(__name__)
+
 # 73 barrios placeholder hasta que C suba el GeoJSON
 DUMMY_BARRIOS = [f"BAR-{i:03d}" for i in range(1, 74)]
 
 _FAMILIES = ("trafico", "accidentes", "aire", "meteo", "sensibilidad")
+
+_REQUIRED_PARQUET_COLS = {
+    "barrio_id", "timestamp",
+    "score_trafico", "score_accidentes", "score_aire",
+    "score_meteo", "score_sensibilidad",
+}
+
+# In-memory TTL cache for load_ufi (P4) — avoids re-reading DuckDB on every request
+_ufi_cache: dict[str, tuple[float, list[BarrioUFI]]] = {}
+_UFI_CACHE_TTL = 300  # 5 min: Parquet is regenerated hourly, 5min is safe
 
 
 def _file_age_seconds(p: Path) -> int | None:
@@ -43,6 +57,29 @@ def _file_age_seconds(p: Path) -> int | None:
 
 def ufi_parquet_age() -> int | None:
     return _file_age_seconds(settings.ufi_parquet)
+
+
+# ---------------------------------------------------------------------------
+# Schema validation (P6)
+# ---------------------------------------------------------------------------
+
+def validate_parquet_schema() -> list[str]:
+    """Returns list of missing columns. Empty list = OK or parquet not found."""
+    if not settings.ufi_parquet.exists():
+        return []
+    try:
+        con = duckdb.connect()
+        cols = {
+            row[0]
+            for row in con.execute(
+                "DESCRIBE SELECT * FROM read_parquet(?)", [str(settings.ufi_parquet)]
+            ).fetchall()
+        }
+        con.close()
+        return sorted(_REQUIRED_PARQUET_COLS - cols)
+    except Exception as exc:
+        logger.warning("Could not validate Parquet schema: %s", exc)
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +136,7 @@ def _apply_weights(scores: dict[str, float], weights: dict[str, float]) -> tuple
 
 
 # ---------------------------------------------------------------------------
-# UFI desde Parquet (DuckDB) con fallback stub
+# UFI desde Parquet (DuckDB) con fallback stub + TTL cache (P4)
 # ---------------------------------------------------------------------------
 
 def _load_ufi_from_parquet(at: datetime, mode: Mode) -> list[BarrioUFI] | None:
@@ -109,12 +146,11 @@ def _load_ufi_from_parquet(at: datetime, mode: Mode) -> list[BarrioUFI] | None:
 
     weights = MODES[mode].weights
     names = _barrio_names_from_geojson()
-    hour_ts = at.replace(minute=0, second=0, microsecond=0)
-    hour_iso = hour_ts.strftime("%Y-%m-%d %H:%M:%S")
+    hour_iso = at.replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
     parquet_path = str(settings.ufi_parquet)
 
     try:
-        con = duckdb.connect(parquet_path, read_only=True)
+        con = duckdb.connect()  # in-memory; read_only=True is for .duckdb files, not parquet
         rows = con.execute(
             """
             SELECT barrio_id,
@@ -127,7 +163,6 @@ def _load_ufi_from_parquet(at: datetime, mode: Mode) -> list[BarrioUFI] | None:
         ).fetchall()
 
         if not rows:
-            # Hora no disponible: tomar la más cercana disponible
             rows = con.execute(
                 """
                 SELECT barrio_id,
@@ -140,7 +175,8 @@ def _load_ufi_from_parquet(at: datetime, mode: Mode) -> list[BarrioUFI] | None:
                 [parquet_path, hour_iso],
             ).fetchall()
         con.close()
-    except Exception:
+    except Exception as exc:
+        logger.warning("DuckDB read failed, falling back to stub: %s", exc)
         return None
 
     if not rows:
@@ -169,7 +205,6 @@ def _load_ufi_from_parquet(at: datetime, mode: Mode) -> list[BarrioUFI] | None:
 
 
 def _load_ufi_stub(at: datetime, mode: Mode) -> list[BarrioUFI]:
-    """Stub determinista seeded por (barrio_id, hora, modo)."""
     weights = MODES[mode].weights
     names = _barrio_names_from_geojson()
     out: list[BarrioUFI] = []
@@ -189,10 +224,18 @@ def _load_ufi_stub(at: datetime, mode: Mode) -> list[BarrioUFI]:
 
 
 def load_ufi(at: datetime, mode: Mode) -> list[BarrioUFI]:
-    real = _load_ufi_from_parquet(at, mode)
-    if real is not None:
-        return real
-    return _load_ufi_stub(at, mode)
+    at_rounded = at.replace(minute=0, second=0, microsecond=0)
+    cache_key = f"{at_rounded.isoformat()}:{mode}"
+    now = time.monotonic()
+
+    if cache_key in _ufi_cache:
+        ts, data = _ufi_cache[cache_key]
+        if now - ts < _UFI_CACHE_TTL:
+            return data
+
+    result = _load_ufi_from_parquet(at_rounded, mode) or _load_ufi_stub(at_rounded, mode)
+    _ufi_cache[cache_key] = (now, result)
+    return result
 
 
 # ---------------------------------------------------------------------------
