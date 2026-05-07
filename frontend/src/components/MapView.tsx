@@ -193,6 +193,17 @@ export default function MapView({
     [selectBarrio]
   );
 
+  const totalBarrios = Object.keys(ufiScores).length || 73;
+  const updatedAt = useMemo(
+    () =>
+      new Date().toLocaleTimeString("es-ES", {
+        timeZone: "Europe/Madrid",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    [ufiScores]
+  );
+
   return (
     <div style={WRAPPER_STYLE}>
       <DeckGL
@@ -206,6 +217,18 @@ export default function MapView({
       >
         <Map mapStyle={MAP_STYLE as never} reuseMaps />
       </DeckGL>
+
+      <div className="absolute top-5 left-5 z-10 pointer-events-none select-none">
+        <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3 leading-tight">
+          friction map
+        </p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3 leading-tight tabular-nums">
+          barcelona · {totalBarrios} barris
+        </p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3 leading-tight tabular-nums">
+          actualizado {updatedAt}
+        </p>
+      </div>
 
       <div className="absolute bottom-6 left-6 z-10 pointer-events-none">
         <Legend />

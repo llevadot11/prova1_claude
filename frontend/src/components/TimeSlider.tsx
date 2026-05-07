@@ -1,15 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useUFI } from "../store";
 
-const QUICK_SLOTS = [
-  { label: "Ahora", hours: 0 },
-  { label: "+1h",   hours: 1 },
-  { label: "+3h",   hours: 3 },
-  { label: "+6h",   hours: 6 },
-  { label: "+12h",  hours: 12 },
-  { label: "+24h",  hours: 24 },
-] as const;
-
 const MAX_HOURS = 24;
 const TICKS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 
@@ -50,9 +41,11 @@ export default function TimeSlider() {
   const pct = (index / MAX_HOURS) * 100;
 
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex flex-col gap-1.5 w-full">
       <div className="flex items-baseline justify-between gap-4">
-        <span className="text-caption uppercase text-ink-3">Hora prevista</span>
+        <span className="text-caption uppercase text-ink-3">
+          hora prevista
+        </span>
         <span className="font-mono text-mono text-ink tabular-nums">
           {formatted}
         </span>
@@ -87,39 +80,22 @@ export default function TimeSlider() {
         />
       </div>
 
-      <div className="flex justify-between font-mono text-mono text-ink-3 tabular-nums">
+      <div className="flex justify-between font-mono text-mono text-ink-3 tabular-nums select-none">
         {TICKS.map((t) => (
-          <span key={t} className={t === index ? "text-ink" : ""}>
+          <button
+            key={t}
+            type="button"
+            onClick={() => apply(t)}
+            aria-pressed={t === index}
+            className={`-mx-1 px-1 py-0.5 transition-colors duration-100 ${
+              t === index
+                ? "text-ink font-semibold"
+                : "hover:text-ink-2"
+            }`}
+          >
             {t === 0 ? "ahora" : `+${t}h`}
-          </span>
+          </button>
         ))}
-      </div>
-
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-body-sm pt-1">
-        {QUICK_SLOTS.map((slot) => {
-          const active = index === slot.hours;
-          return (
-            <button
-              key={slot.hours}
-              type="button"
-              onClick={() => apply(slot.hours)}
-              aria-pressed={active}
-              className={`relative pb-px transition-colors duration-100 ${
-                active
-                  ? "text-ink font-semibold"
-                  : "text-ink-3 hover:text-ink-2"
-              }`}
-            >
-              {slot.label}
-              {active && (
-                <span
-                  aria-hidden="true"
-                  className="absolute left-0 right-0 -bottom-px h-[2px] bg-accent-ink"
-                />
-              )}
-            </button>
-          );
-        })}
       </div>
     </div>
   );

@@ -45,8 +45,20 @@ export default function RankingList({
               <span className="font-mono text-mono text-ink-3 tabular-nums">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="text-body text-ink leading-snug truncate">
-                {b.barrio_name}
+              <span className="flex items-baseline gap-1.5 min-w-0">
+                <span className="text-body text-ink leading-snug truncate">
+                  {b.barrio_name}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`text-mono font-mono shrink-0 transition-colors duration-100 ${
+                    isSelected
+                      ? "text-accent-ink"
+                      : "text-ink-3 group-hover:text-ink-2"
+                  }`}
+                >
+                  ↗
+                </span>
               </span>
               <span className="flex items-baseline gap-2 shrink-0">
                 {delta !== null && Math.abs(delta) >= 2 && (

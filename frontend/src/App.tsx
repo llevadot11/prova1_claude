@@ -100,19 +100,22 @@ export default function App() {
       />
 
       <main className="flex-1 relative min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px]">
-        <section className="relative min-h-0 border-t border-rule lg:border-r">
-          <MapView
-            barrios={barriosGeo}
-            ufiScores={ufiMap}
-            tramosGeo={showTramos ? tramosGeo : null}
-            tramoStates={showTramos ? tramoStates : undefined}
-          />
-          {loading && (
-            <div
-              className="absolute inset-0 bg-paper/20 pointer-events-none z-10"
-              aria-hidden="true"
+        <section className="relative min-h-0 flex flex-col border-t border-rule lg:border-r">
+          <div className="relative flex-1 min-h-0">
+            <MapView
+              barrios={barriosGeo}
+              ufiScores={ufiMap}
+              tramosGeo={showTramos ? tramosGeo : null}
+              tramoStates={showTramos ? tramoStates : undefined}
             />
-          )}
+            {loading && (
+              <div
+                className="absolute inset-0 bg-paper/20 pointer-events-none z-10"
+                aria-hidden="true"
+              />
+            )}
+          </div>
+          <SourcesBar />
         </section>
 
         <aside className="hidden lg:flex flex-col bg-paper-2 border-t border-rule overflow-hidden">
@@ -152,6 +155,19 @@ export default function App() {
   );
 }
 
+function SourcesBar() {
+  return (
+    <div className="shrink-0 bg-paper border-t border-rule px-6 md:px-8 py-2 hidden md:flex items-baseline justify-between gap-6 text-caption uppercase tracking-[0.04em] text-ink-3 select-none">
+      <span>
+        fuentes: open-meteo · ajuntament de barcelona · openstreetmap · datos públicos
+      </span>
+      <span className="font-mono tabular-nums">
+        v0.1 · build 2026-05
+      </span>
+    </div>
+  );
+}
+
 interface MastheadProps {
   modes: ModePreset[];
   mode: ModePreset["id"];
@@ -175,61 +191,58 @@ function Masthead({
 }: MastheadProps) {
   return (
     <header className="shrink-0 bg-paper-2 border-b-2 border-rule-strong z-20">
-      <div className="px-6 md:px-8 pt-5 md:pt-6 pb-4">
-        <div className="flex items-start justify-between gap-6">
-          <div className="min-w-0">
-            <h1 className="font-display text-[40px] md:text-display-2xl leading-[0.95] text-ink">
-              UFI <span className="italic">Barcelona</span>
-            </h1>
-            <p className="mt-1 text-body-sm text-ink-2">
-              Índice de Fricción Urbana
-              <span className="text-ink-3"> · diagnóstico por barri y franja horaria</span>
-            </p>
-          </div>
-          <div className="hidden md:flex flex-col items-end gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={onToggleTramos}
-              aria-pressed={showTramos}
-              className={`text-body-sm transition-colors duration-150 ${
-                showTramos ? "text-ink font-semibold" : "text-ink-3 hover:text-ink-2"
-              }`}
-            >
-              <span className="font-mono text-mono mr-2 tabular-nums">
-                {showTramos ? "[×]" : "[ ]"}
-              </span>
-              Tramos viarios
-            </button>
-            {degraded && (
-              <DemoNotice onDismiss={onDismissDegraded} />
-            )}
-            {loading && !degraded && (
-              <span className="font-mono text-mono text-ink-3 tabular-nums">
-                cargando…
-              </span>
-            )}
-          </div>
+      {/* Eyebrow row — numbered editorial title-card */}
+      <div className="px-6 md:px-8 pt-3 md:pt-3.5 pb-1.5 flex items-baseline justify-between gap-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-3 truncate">
+          <span className="tabular-nums text-ink-2">01</span>
+          <span className="mx-2">—</span>
+          diagnóstico urbano de barcelona, en directo
+        </p>
+        <div className="hidden md:flex items-baseline gap-5 shrink-0">
+          {loading && !degraded && (
+            <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-3 tabular-nums">
+              cargando…
+            </span>
+          )}
+          {degraded && <DemoNotice onDismiss={onDismissDegraded} />}
         </div>
       </div>
 
-      <div className="px-6 md:px-8 py-3 border-t border-rule flex flex-wrap items-center gap-x-6 gap-y-3">
-        <ModeRegister modes={modes} active={mode} onChange={onModeChange} />
-        <button
-          type="button"
-          onClick={onToggleTramos}
-          aria-pressed={showTramos}
-          className={`md:hidden text-body-sm ${
-            showTramos ? "text-ink font-semibold" : "text-ink-3"
-          }`}
-        >
-          <span className="font-mono text-mono mr-1.5 tabular-nums">
-            {showTramos ? "[×]" : "[ ]"}
-          </span>
-          Tramos
-        </button>
+      {/* Wordmark + mode register + tramos — same row */}
+      <div className="px-6 md:px-8 pb-3 flex items-end justify-between gap-6 flex-wrap">
+        <h1 className="font-display text-[36px] md:text-[44px] leading-[0.95] text-ink whitespace-nowrap">
+          UFI <span className="italic">Barcelona</span>
+        </h1>
+        <div className="flex items-baseline gap-6 ml-auto">
+          <ModeRegister modes={modes} active={mode} onChange={onModeChange} />
+          <button
+            type="button"
+            onClick={onToggleTramos}
+            aria-pressed={showTramos}
+            className={`hidden md:inline-flex items-baseline gap-1 text-body-sm transition-colors duration-150 ${
+              showTramos
+                ? "text-ink font-semibold underline underline-offset-[6px] decoration-2 decoration-accent-ink"
+                : "text-ink-3 hover:text-ink-2"
+            }`}
+          >
+            tramos viarios
+            <span aria-hidden="true" className="font-mono">→</span>
+          </button>
+          <button
+            type="button"
+            onClick={onToggleTramos}
+            aria-pressed={showTramos}
+            className={`md:hidden text-body-sm ${
+              showTramos ? "text-ink font-semibold" : "text-ink-3"
+            }`}
+          >
+            tramos →
+          </button>
+        </div>
       </div>
 
-      <div className="px-6 md:px-8 py-4 border-t border-rule">
+      {/* Time scrubber */}
+      <div className="px-6 md:px-8 py-2.5 border-t border-rule">
         <TimeSlider />
       </div>
     </header>
@@ -284,9 +297,11 @@ function ColumnContent({
             onClick={() => onSelectBarrio(null)}
             className="text-body-sm text-ink-3 hover:text-ink transition-colors"
           >
-            ← Volver al ranking
+            <span aria-hidden="true">←</span> volver al ranking
           </button>
-          <span className="text-caption uppercase text-ink-3">Detalle</span>
+          <span className="font-mono text-caption uppercase tracking-[0.06em] text-ink-2 tabular-nums">
+            [02] detalle
+          </span>
         </div>
         <div className="flex-1 overflow-y-auto min-h-0">
           <BarrioPanel barrioId={selectedBarrio} at={at} mode={mode} />
@@ -297,9 +312,9 @@ function ColumnContent({
 
   return (
     <>
-      <div className="shrink-0 px-5 py-4">
-        <p className="text-caption uppercase text-ink-3 mb-1">
-          Top 10 — peor fricción
+      <div className="shrink-0 px-5 pt-4 pb-3">
+        <p className="font-mono text-caption uppercase tracking-[0.06em] text-ink-2 tabular-nums mb-1.5">
+          [01] ranking
         </p>
         <h2 className="font-display text-display-lg italic text-ink leading-tight">
           ¿Qué evitar ahora mismo?

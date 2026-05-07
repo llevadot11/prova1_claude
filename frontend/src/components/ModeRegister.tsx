@@ -18,26 +18,28 @@ export default function ModeRegister({ modes, active, onChange }: Props) {
 
   return (
     <>
-      <div className="hidden md:flex items-stretch text-body-sm">
+      <div className="hidden md:flex items-baseline text-body-sm">
         {modes.map((m, i) => {
           const isActive = m.id === active;
           return (
-            <div key={m.id} className="flex items-stretch">
+            <div key={m.id} className="flex items-baseline">
               {i > 0 && (
-                <span aria-hidden="true" className="self-stretch w-px bg-rule mx-3" />
+                <span aria-hidden="true" className="text-ink-3 mx-3 select-none">
+                  —
+                </span>
               )}
               <button
                 type="button"
                 onClick={() => onChange(m.id)}
                 aria-pressed={isActive}
                 title={m.description}
-                className={`relative inline-flex items-center pb-1 transition-colors duration-150 ${
+                className={`relative inline-flex items-baseline pb-1 transition-colors duration-150 ${
                   isActive
                     ? "text-ink font-semibold"
                     : "text-ink-3 hover:text-ink-2 font-normal"
                 }`}
               >
-                {m.label}
+                {m.label.toLowerCase()}
                 <span
                   aria-hidden="true"
                   className={`absolute left-0 right-0 -bottom-px h-[2px] bg-accent-ink transition-opacity ${
@@ -68,8 +70,8 @@ function ModeDropdown({ modes, active, onChange }: Props) {
         aria-expanded={open}
         className="flex items-baseline gap-2 text-body-sm text-ink"
       >
-        <span className="text-caption uppercase text-ink-3">Modo</span>
-        <span className="font-semibold">{current.label}</span>
+        <span className="text-caption uppercase text-ink-3">modo</span>
+        <span className="font-semibold">{current.label.toLowerCase()}</span>
         <span aria-hidden="true" className="text-ink-3 text-[10px]">▾</span>
       </button>
       {open && (
@@ -98,7 +100,7 @@ function ModeDropdown({ modes, active, onChange }: Props) {
                       : "text-ink-2 hover:bg-paper-2"
                   }`}
                 >
-                  {m.label}
+                  {m.label.toLowerCase()}
                 </button>
               </li>
             ))}

@@ -73,7 +73,7 @@ export default function BarrioPanel({ barrioId, at, mode }: Props) {
     <article className="ufi-fade-up">
       <header className="px-5 pt-5 pb-4 border-b border-rule">
         {detail.district_name && (
-          <p className="text-caption uppercase text-ink-3 mb-1">
+          <p className="font-mono text-caption uppercase tracking-[0.06em] text-ink-3 mb-1 lowercase">
             {detail.district_name}
           </p>
         )}
@@ -88,27 +88,27 @@ export default function BarrioPanel({ barrioId, at, mode }: Props) {
             {detail.ufi.toFixed(0)}
           </span>
           <span className="text-body-sm text-ink-2">
-            <span className="font-medium">{ufiQualifier(detail.ufi)}</span>
-            <span className="text-ink-3"> · UFI 0–100</span>
+            <span className="font-medium">{ufiQualifier(detail.ufi).toLowerCase()}</span>
+            <span className="text-ink-3"> · ufi 0–100</span>
           </span>
         </div>
       </header>
 
       <section className="px-5 py-4 border-b border-rule">
-        <h3 className="text-caption uppercase text-ink-3 mb-3">
-          Contribución por factor
+        <h3 className="font-mono text-caption uppercase tracking-[0.06em] text-ink-2 mb-3 tabular-nums">
+          [a] contribución por factor
         </h3>
         <ContribBar contributions={detail.contribuciones} />
       </section>
 
       {(loadingExplain || explain?.text) && (
         <section className="px-5 py-4 border-b border-rule">
-          <h3 className="text-caption uppercase text-ink-3 mb-2">
-            Lectura de la zona
+          <h3 className="font-mono text-caption uppercase tracking-[0.06em] text-ink-2 mb-2 tabular-nums">
+            [b] lectura de la zona
           </h3>
           {loadingExplain ? (
             <p className="font-mono text-mono text-ink-3 tabular-nums">
-              Generando lectura…
+              generando lectura…
             </p>
           ) : (
             <p className="font-display text-body-lg text-ink leading-[1.55]">
@@ -119,9 +119,9 @@ export default function BarrioPanel({ barrioId, at, mode }: Props) {
       )}
 
       <footer className="px-5 py-3 text-caption text-ink-3 leading-snug">
-        Calculado para <span className="text-ink-2">{formatted}</span>
+        calculado para <span className="text-ink-2">{formatted}</span>
         <span className="mx-1.5 text-ink-3">·</span>
-        Modo <span className="text-ink-2">{detail.mode}</span>
+        modo <span className="text-ink-2">{detail.mode}</span>
       </footer>
     </article>
   );
